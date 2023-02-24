@@ -1,0 +1,8 @@
+{
+	"magicmember" : "DocGenProfile",
+	"name" : "Operations",
+	"owner" : "Erika Domang",
+	"todo" : "erika_todo.txt",
+	"deprecation_define" : "NONE",
+	"help" : "orbital_help",
+}

@@ -1,0 +1,12 @@
+{
+	"magicmember" : "DocGenProfile",
+	"name" : "Ground Controll ",
+	"owner" : "Eskil steenberg",
+	"todo" : "ground_controll_todo.txt",
+	"deprecation_define" : "NONE",
+	"help" : "parallax_major_tom_help_message",
+	"prefixes" : [
+		"parallax_ground_control"
+		"parallax_major_tom"
+	]
+}

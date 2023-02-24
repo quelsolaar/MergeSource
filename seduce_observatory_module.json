@@ -1,0 +1,13 @@
+{
+	"magicmember" : "DocGenProfile",
+	"name" : "Seduce",
+	"owner" : "Eskil Steenberg Hald",
+	"header" : "seduce.h",
+	"todo" : "seduce_todo.txt",
+	"release" : "SOMETHING_RELEASE",
+	"deprecation_define" : "DEPRECATED",
+	"help" : "HELP_STRING",
+	"prefixes" : [
+		"s_"
+	]
+}

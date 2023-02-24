@@ -1,0 +1,10 @@
+{
+	"magicmember": "DocGenProfile",
+	"name": "Stellar2",
+	"owner": "Eskil Steenberg Hald",
+	"release": "STELLAR_RELEASE_VERSION",
+	"todo": "stellar2_todo.txt",
+	"prefixes": [
+		"stellar2_"
+	]
+}

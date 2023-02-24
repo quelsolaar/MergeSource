@@ -1,0 +1,12 @@
+{
+	"magicmember" : "DocGenProfile",
+	"name" : "Assemble json",
+	"owner" : "Eskil Steenberg Hald",
+	"header" : "assemble_json.h",
+	"todo" : "assemble_json_todo.txt",
+	"release" : "SOMETHING_RELEASE",
+	"deprecation_define" : "DEPRECATED",
+	"prefixes" : [
+		"assemble_json",
+	]
+}

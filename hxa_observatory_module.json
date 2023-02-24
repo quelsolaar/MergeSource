@@ -1,0 +1,18 @@
+{
+	"magicmember" : "DocGenProfile",
+	"name" : "HxA",
+	"owner" : "Eskil Steenberg Hald",
+	"header" : "hxa.h",
+	"todo" : "hxa_todo.txt",
+	"release" : "HXA_VERSION_RELEASE",
+	"deprecation_define" : "DEPRECATED",
+	"help" : "HELP_STRING",
+	"plugin_owner" : "HXA_PLUGIN_OWNER",
+	"plugin_help" : "HXA_PLUGIN_HELP",
+	"plugins" : [
+		"hxa_util_"
+	],
+	"prefixes" : [
+		"hxa_"
+	],
+}

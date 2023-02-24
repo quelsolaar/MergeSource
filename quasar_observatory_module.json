@@ -1,0 +1,9 @@
+{
+	"magicmember": "DocGenProfile",
+	"name": "Quasar",
+	"owner": "Eskil Steenberg Hald",
+	"header": "quasar.h",
+	"prefixes": [
+		"quasar_"
+	]
+}

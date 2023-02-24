@@ -1,0 +1,13 @@
+{
+	"magicmember" : "DocGenProfile",
+	"name" : "Forge",
+	"owner" : "Eskil Steenberg Hald",
+	"header" : "forge.h",
+	"todo" : "forge_todo.txt",
+	"release" : "SOMETHING_RELEASE",
+	"deprecation_define" : "DEPRECATED",
+	"help" : "HELP_STRING",
+	"prefixes" : [
+		"f_",
+	]
+}

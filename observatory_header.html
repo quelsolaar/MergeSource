@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=\"UTF-8\">
+<title>Something</title>
+<style type="text/css">
+
+.sidebar {
+  position: fixed;
+  width: calc(5% + 168px);
+  height: 100vh;
+  padding: 16px 16px;
+  font-size: 0.65em;
+}
+
+.sidebar div {
+	padding: 8px;
+	font-size: 24px;
+	display: block;
+}
+
+.card  {
+	margin: 20px 10px;
+	font-size: 20px;
+	padding: 16px 16px;
+	display: block;
+	outline-style: solid;
+ 	outline-color: rgb(255,0,0);
+	outline-width: 1px;
+	break-inside: avoid;
+}
+
+.line {
+    display: block;
+    height: 1px;
+    border: 0;
+    border-top: 1px solid #ccc;
+    margin: 4px 0;
+    padding: 0;
+}
+
+
+article {
+  width: calc(95% - 200px);
+  padding: 8px;
+  position: relative;
+  height: 100%;
+  float: right;
+	  -webkit-column-width: 450px;
+	  -moz-column-width: 450px;
+	  column-width: 450px;
+	  -webkit-column-gap: 0em;
+	  -moz-column-gap: 0em;
+	  column-gap: 0em;
+	}
+
+li {
+	word-break: break-all;
+}
+a {
+	word-break: break-all;
+}
+
+.body-text {
+margin-left: 150px;
+font-size: 18px;
+}
+</style>
+<script>
+function turn_on(id) {
+	var tmp;
+	tmp = "list" + id;
+	document.getElementById(tmp).style.display = "block";
+	tmp = "show_less" + id;
+	document.getElementById(tmp).style.display = "block";
+	tmp = "show_more" + id;
+	document.getElementById(tmp).style.display = "none";
+}
+function turn_off(id) {
+	var tmp;
+	tmp = "list" + id;
+	document.getElementById(tmp).style.display = "none";
+	tmp = "show_more" + id;
+	document.getElementById(tmp).style.display = "block";
+	tmp = "show_less" + id;
+	document.getElementById(tmp).style.display = "none";
+}
+</script>
+
+
+</head>
+
+<body>
+<div class="sidebar">

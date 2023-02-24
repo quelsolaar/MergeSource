@@ -1,0 +1,15 @@
+{
+	"magicmember": "DocGenProfile",
+	"name": "Parallax",
+	"owner": "Eskil Steenberg Hald",
+	"todo": "parallax_todo.txt",
+	"release": "PARALLAX_RELEASE_VERSION",
+	"deprecation_define": "NONE",
+	"help": "orbital_help",
+	"header": "parallax.h",
+	"prefixes": [
+		"parallax_device",
+		"parallax_shared",
+		"parallax_controller"
+	]
+}

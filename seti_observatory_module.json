@@ -1,0 +1,11 @@
+{
+	"magicmember": "ObservatoryProfile",
+	"name": "SETI",
+	"owner": "Tim Boden",
+	"header": "seti.h",
+	"todo": "seti_todo.txt",
+	"release": "SETI_VERSION",
+	"prefixes": [
+		"seti_"
+	]
+}

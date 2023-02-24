@@ -1,0 +1,14 @@
+{
+	"magicmember" : "DocGenProfile",
+	"name" : "Betray",
+	"owner" : "Eskil Steenberg Hald",
+	"header" : "betray.h",
+	"todo" : "betray_todo.txt",
+	"release" : "SOMETHING_RELEASE",
+	"deprecation_define" : "DEPRECATED",
+	"help" : "HELP_STRING",
+	"prefixes" : [
+		"b_",
+		"betray_"
+	]
+}

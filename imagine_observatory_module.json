@@ -1,0 +1,12 @@
+{
+	"magicmember" : "DocGenProfile",
+	"name" : "Imagine",
+	"owner" : "Eskil Steenberg Hald",
+	"header" : "imagine.h",
+	"todo" : "imagine_todo.txt",
+	"release" : "SOMETHING_RELEASE",
+	"deprecation_define" : "DEPRECATED",
+	"prefixes" : [
+		"i_",
+	]
+}

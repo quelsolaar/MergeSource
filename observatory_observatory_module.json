@@ -1,0 +1,12 @@
+{
+	"magicmember": "DocGenProfile",
+	"name": "Observatory",
+	"owner": "Eskil Steenberg Hald",
+	"todo": "observatory_todo.txt",
+	"release": "OBSERVATORY_RELEASE",
+	"deprecation_define": "NONE",
+	"help": "observatory_help_message",
+	"prefixes": [
+		"observatory_"
+	]
+}

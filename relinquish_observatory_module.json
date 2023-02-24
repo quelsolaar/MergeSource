@@ -1,0 +1,13 @@
+{
+	"magicmember" : "DocGenProfile",
+	"name" : "Relinquish",
+	"owner" : "Eskil Steenberg Hald",
+	"header" : "relinquish.h",
+	"todo" : "relinquish_todo.txt",
+	"release" : "SOMETHING_RELEASE",
+	"deprecation_define" : "DEPRECATED",
+	"help" : "HELP_STRING",
+	"prefixes" : [
+		"r_",
+	]
+}

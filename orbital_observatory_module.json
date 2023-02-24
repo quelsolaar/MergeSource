@@ -1,0 +1,12 @@
+{
+	"magicmember" : "DocGenProfile",
+	"name" : "Orbital Device Emulator ",
+	"owner" : "Eskil steenberg",
+	"todo" : "orbital_todo.txt",
+	"release" : "ORBITAL_RELEASE",
+	"deprecation_define" : "NONE",
+	"help" : "orbital_help",
+	"prefixes" : [
+		"parallax_orbital"
+	]
+}
