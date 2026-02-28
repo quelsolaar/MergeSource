@@ -46,6 +46,8 @@ typedef struct{
 	uint16 *data;
 	uint length;
 	uint frequency;
+	uint user_count;
+	char name[16];
 }BSoundStorage;
 
 BSoundStorage *b_sound_storage = NULL;
@@ -101,6 +103,11 @@ uint betray_audio_util_sound_create(uint type, uint stride, uint length, uint fr
 	b_sound_storage[b_sound_storage_count].data = p;
 	b_sound_storage[b_sound_storage_count].length = length;
 	b_sound_storage[b_sound_storage_count].frequency = frequency;
+	b_sound_storage[b_sound_storage_count].user_count = 1;
+	printf("Loading Sound %s\n", name);
+	for(i = 0; i < 16 - 1 && name[i] != '\0'; i++)
+		b_sound_storage[b_sound_storage_count].name[i] = name[i];
+	b_sound_storage[b_sound_storage_count].name[i] = '\0';
 	b_sound_storage_count++;
 	return b_sound_storage_count - 1;
 }
@@ -109,7 +116,10 @@ void betray_audio_util_sound_destroy(uint sound)
 {
 	if(sound >= b_sound_storage_count)
 		return;
-	free(b_sound_storage[b_sound_storage_count].data);
+	if(b_sound_storage[b_sound_storage_count].user_count-- > 1)
+		return;
+	free(b_sound_storage[sound].data);
+	b_sound_storage[sound].data = NULL;
 }
 
 void betray_audio_util_sound_set(uint source, float *pos, float *vector, float speed, float volume, boolean loop, boolean ambient)
@@ -130,7 +140,10 @@ void betray_audio_util_sound_set(uint source, float *pos, float *vector, float s
 		b_source_storage[source].vector[1] = 0;
 		b_source_storage[source].vector[2] = 0;
 	}
-	b_source_storage[source].speed = speed;
+	if(b_source_storage[source].sound < b_sound_storage_count)
+		b_source_storage[source].speed = speed * (float)b_sound_storage[b_source_storage[source].sound].frequency / 44100.0;
+	else
+		b_source_storage[source].speed = speed;
 	b_source_storage[source].volume = volume;
 	b_source_storage[source].loop = loop;
 	b_source_storage[source].ambient = ambient;
@@ -138,6 +151,8 @@ void betray_audio_util_sound_set(uint source, float *pos, float *vector, float s
 
 boolean betray_audio_util_sound_is_playing(uint source)
 {
+	if(source >= b_source_storage_alloc)
+		return FALSE;
 	return b_source_storage[source].active;
 }
 
@@ -156,10 +171,7 @@ void betray_audio_util_time_progress(BSourceStorage *s, float time)
 		s->play_vec[0] = s->pos[0];
 		s->play_vec[1] = s->pos[1];
 		s->play_vec[2] = s->pos[2];
-		if(s->data != NULL)
-			s->play_speed = s->speed;
-		else
-			s->play_speed = s->speed * 44100.0 / (float)b_sound_storage[s->sound].frequency;
+		s->play_speed = s->speed;
 	}else
 	{
 		vec[0] = b_listener_pos[0] - s->pos[0];
@@ -184,10 +196,9 @@ void betray_audio_util_time_progress(BSourceStorage *s, float time)
 			speed = (s->speed + (s->play_distance - f) / time * b_listener_speed_of_sound) * (float)b_sound_storage[s->sound].frequency / 44100.0;
 			if(speed < s->speed * 0.1)
 				speed = s->speed * 0.1;
-			speed *= (float)b_sound_storage[s->sound].frequency / 44100.0;
+			s->play_speed = speed;
 		}
 		s->play_distance = f;
-		s->play_speed = speed;
 		s->pos[0] += s->vector[0] * time;
 		s->pos[1] += s->vector[1] * time;
 		s->pos[2] += s->vector[2] * time;
@@ -197,7 +208,7 @@ void betray_audio_util_time_progress(BSourceStorage *s, float time)
 
 uint betray_audio_util_sound_play(uint sound, float *pos, float *vector, float speed, float volume, boolean loop, boolean ambient, boolean auto_delete)
 {
-	if(sound == -1)
+	if(sound > b_sound_storage_count || b_sound_storage[sound].data == NULL)
 		return -1;
 	for(b_source_storage_hole = 0; b_source_storage_hole < b_source_storage_count && !b_source_storage[b_source_storage_hole].deleted; b_source_storage_hole++);
 	if(b_source_storage_hole == b_source_storage_alloc)
@@ -205,6 +216,7 @@ uint betray_audio_util_sound_play(uint sound, float *pos, float *vector, float s
 		b_source_storage_alloc += 32;
 		b_source_storage = realloc(b_source_storage, (sizeof *b_source_storage) * b_source_storage_alloc);
 	}
+	b_sound_storage[sound].user_count++;
 	b_source_storage[b_source_storage_hole].data = NULL;
 	b_source_storage[b_source_storage_hole].sound = sound;
 	b_source_storage[b_source_storage_hole].progress = 0;
@@ -227,6 +239,8 @@ void betray_audio_util_sound_stop(uint source)
 		return;
 	b_source_storage[source].active = FALSE;
 	b_source_storage[source].deleted = TRUE;
+	betray_audio_util_sound_destroy(b_source_storage[source].sound);
+
 	if(source + 1 == b_sound_storage_count)
 	{
 		for(b_sound_storage_count--; b_source_storage[b_sound_storage_count].deleted &&	b_sound_storage_count > 0; b_sound_storage_count--);
@@ -237,7 +251,7 @@ void betray_audio_util_sound_stop(uint source)
 		b_source_storage_hole = source;
 }
 
-uint betray_audio_util_stream_create(uint frequency, float *pos, float *vector,  float volume, boolean ambient)
+uint betray_audio_util_stream_create(uint frequency, float *pos, float *vector, float volume, boolean ambient)
 {
 	for(b_source_storage_hole = 0; b_source_storage_hole < b_source_storage_count && b_source_storage[b_source_storage_hole].deleted; b_source_storage_hole++);
 	if(b_source_storage_hole == b_source_storage_alloc)
@@ -254,7 +268,7 @@ uint betray_audio_util_stream_create(uint frequency, float *pos, float *vector, 
 	b_source_storage[b_source_storage_hole].progress_add = 0;
 	b_source_storage[b_source_storage_hole].active = TRUE;
 	b_source_storage[b_source_storage_hole].deleted = FALSE;
-	betray_audio_util_sound_set(b_source_storage_hole, pos, vector, (float)frequency / 44100.0, volume, FALSE, ambient);
+	betray_audio_util_sound_set(b_source_storage_hole, pos, vector, (float)1.0, volume, FALSE, ambient);
 	betray_audio_util_time_progress(&b_source_storage[b_source_storage_hole], 0.01);
 	betray_audio_util_time_progress(&b_source_storage[b_source_storage_hole], 0.0);
 	b_source_storage_hole++;
@@ -268,7 +282,7 @@ void betray_audio_util_stream_destroy(uint stream)
 	if(stream >= b_source_storage_count)
 		return;
 	b_source_storage[stream].active = FALSE;
-	b_source_storage[stream].deleted = FALSE;
+	b_source_storage[stream].deleted = TRUE;
 	if(b_source_storage[stream].data != NULL)
 		free(b_source_storage[stream].data);
 	b_source_storage[stream].data = NULL;
@@ -289,13 +303,10 @@ void betray_audio_util_stream_feed(uint stream, uint type, uint stride, uint len
 	int16 *pint16, *p;
 	int32 *pint32;
 	float *preal32;
-
-	if(debug_output == NULL)
-		debug_output = fopen("plugin_debug.txt", "w");
 //	fprintf(debug_output, "length %u\n",  length);
 	if(b_source_storage[stream].data_left + length > BETRAY_READ_BUFFER_SIZE)
 		length = BETRAY_READ_BUFFER_SIZE - b_source_storage[stream].data_left;
-	fprintf(debug_output, "length %u\n",  length);	
+
 	p = b_source_storage[stream].data;
 	data_place = b_source_storage[stream].data_place;
 	switch(type)
@@ -361,7 +372,6 @@ void betray_audio_util_update_callback(void *data, uint length, uint padding, fl
 	fbuf = malloc((sizeof *fbuf) * length);
 	for(i = 0; i < length; i++)
 		fbuf[i] = 0;
-
 	for(i = 0; i < b_source_storage_count; i++)
 	{
 		if(b_source_storage[i].active)
@@ -388,14 +398,9 @@ void betray_audio_util_update_callback(void *data, uint length, uint padding, fl
 			{
 				if(e->data_left > 0)
 				{
-					if(debug_output == NULL)
-						debug_output = fopen("plugin_debug.txt", "w");
-					fprintf(debug_output, "Callback: speed %f ", e->play_speed);
-					fprintf(debug_output, "place %u e->data_left %u", e->data_place, e->data_left);
 					buf = e->data;
 					end = length;
 					p = e->data_place + BETRAY_READ_BUFFER_SIZE - (e->data_left);
-					fprintf(debug_output, " P %u ", p);
 					dist = (e->play_speed * (float)length);
 					end = (dist * length);
 					if(dist > e->data_left)
@@ -407,8 +412,6 @@ void betray_audio_util_update_callback(void *data, uint length, uint padding, fl
 					//	fbuf[j] += (buf[(p + j) % BETRAY_READ_BUFFER_SIZE] * v) / 32768;
 					}
 					e->progress_add = dist;
-					fprintf(debug_output, "dist %u (%u)\n", dist, length);
-					fprintf(debug_output, "read %u -> %u - dist %u length %u\n", p % BETRAY_READ_BUFFER_SIZE, (p + (dist * j / length)) % BETRAY_READ_BUFFER_SIZE, dist, length);
 				}
 			}else
 			{
@@ -416,14 +419,14 @@ void betray_audio_util_update_callback(void *data, uint length, uint padding, fl
 				prev_speed = e->prev_play_speed; 
 				speed = e->play_speed;
 
-				if(speed > 10.0)
+			/*	if(speed > 10.0)
 					speed = 10.0;
 				if(prev_speed > 10.0)
 					prev_speed = 10.0;
 				if(speed < 0.01)
 					speed = 0.01;
 				if(prev_speed < 0.01)
-					prev_speed = 0.01;
+					prev_speed = 0.01;*/
 				if(speed > 0.0 && volume > 0.0)
 				{
 					if(e->loop)
@@ -450,19 +453,29 @@ void betray_audio_util_update_callback(void *data, uint length, uint padding, fl
 						p = e->progress;
 						d0 = (int)(prev_speed * (float)length);
 						d1 = (int)((prev_speed + speed) * (float)length / 2.0);
-
-						if(e->progress + d1 >= length)
-							end = (length - e->progress) / speed;
-
+					//	printf("d %u %u\n", d0, d1);
+					//	printf("e->progress %u length %u\n", e->progress, length);
+					//	if(e->progress + d1 >= s->length)
+					//		end = (s->length - e->progress) / speed;
+					//	printf("end %u\n", end);
 						for(j = 0; j < end; j++)
 						{
 							dist = (d0 * (length - j) + d1 * j) / length;
 							v = (prev_volume * (length - j) + volume * j) / length;
-							fbuf[j] += (buf[(p + (dist * j / length))] * v) / 32768;
+							if(p + (dist * j / length) < s->length)	
+								fbuf[j] += (buf[(p + (dist * j / length))] * v) / 32768;
+							else
+								break;
 						}
-						dist = (d0 * (length - j) + d1 * j) / length;
-						e->progress_add = p + (dist * j / length);
-						
+						if(j < end)
+						{
+							e->progress_add = s->length;
+						}else
+						{
+							dist = (d0 * (length - j) + d1 * j) / length;
+							e->progress_add = p + (dist * j / length);
+						}
+					//	printf("e->progress_add %u %u %u (%u)\n", dist, j, length, (dist * j / length));						
 					}
 				}
 			}
@@ -484,7 +497,6 @@ void betray_audio_util_update_callback(void *data, uint length, uint padding, fl
 
 void betray_audio_util_time_callback(uint length)
 {
-
 	BSourceStorage *s;
 	uint i;
 	for(i = 0; i < b_source_storage_count; i++)
@@ -500,8 +512,10 @@ void betray_audio_util_time_callback(uint length)
 					s->progress = s->progress % b_sound_storage[s->sound].length;
 				else if(s->progress >= b_sound_storage[s->sound].length)
 				{
+					
 					s->active = FALSE;
-					if(s->auto_deleted)
+					betray_audio_util_sound_stop(i);
+					if(!s->auto_deleted)
 						s->deleted = FALSE;
 				}
 			}
@@ -511,11 +525,6 @@ void betray_audio_util_time_callback(uint length)
 					s->data_left = BETRAY_READ_BUFFER_SIZE;
 				else
 					s->data_left -= s->progress_add;
-
-				if(debug_output == NULL)
-					debug_output = fopen("plugin_debug.txt", "w");
-				fprintf(debug_output, "betray_audio_util_time_callback(length = %u)\n", length);
-
 			}
 			if(s->active)
 				betray_audio_util_time_progress(s, (float)length / 44100.0);

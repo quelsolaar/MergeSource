@@ -169,7 +169,7 @@ void betray_key_codes_init(void)
 	betray_buttons[BETRAY_ENUM_BUTTON_J].name = "J";
 	betray_buttons[BETRAY_ENUM_BUTTON_K].name = "K";
 	betray_buttons[BETRAY_ENUM_BUTTON_L].name = "L";
-	betray_buttons[BETRAY_ENUM_BUTTON_K].name = "M";
+	betray_buttons[BETRAY_ENUM_BUTTON_M].name = "M";
 	betray_buttons[BETRAY_ENUM_BUTTON_N].name = "N";
 	betray_buttons[BETRAY_ENUM_BUTTON_O].name = "O";
 	betray_buttons[BETRAY_ENUM_BUTTON_P].name = "P";
@@ -275,5 +275,18 @@ boolean	betray_button_get_name(uint user_id, uint key, char *name, uint buffer_s
 	name[j] = 0;
 	return TRUE;
 }
+
+uint betray_button_loopup(char *name)
+{
+	uint i, j;
+	for(i = 0; i < BETRAY_ENUM_BUTTON_COUNT; i++)
+	{
+		for(j = 0; name[j] != 0 && betray_buttons[i].name[j] == name[j]; j++);
+		if(betray_buttons[i].name[j] == name[j])
+			return betray_buttons[i].system_code;
+	}
+	return ~0;
+}
+
 
 #endif

@@ -32,7 +32,8 @@ double f_randnd(uint32 index)
 uint f_randi(uint32 index)
 {
 	index = (index << 13) ^ index;
-	return ((index * (index * index * 15731 + 789221) + 1376312589) & 0x7fffffff);
+	index = ((index * (index * index * 15731 + 789221) + 1376312589) & 0x7fffffff);
+	return (index >> 4) ^ (index << 1);
 }
 
 void f_rgb_to_hsv(float *output, float r, float g, float b)
@@ -240,7 +241,7 @@ void f_kelvin_to_xyz(float *xyz, float kelvin)
 */
 void f_xyz_to_rgb(float *rgb, float x, float y, float z)
 {	
-	float min;	
+/*	float min;	
 	rgb[0] = 3.2406f * x - 1.5372f * y - 0.4986f * z;
 	rgb[1] = -0.9689f * x + 1.8758f * y + 0.0415f * z;
 	rgb[2] =  0.0557f * x - 0.2040f * y + 1.0570f * z;
@@ -280,6 +281,30 @@ void f_xyz_to_rgb(float *rgb, float x, float y, float z)
 		rgb[2] = 12.92f * rgb[2];
 	else
 		rgb[2] = 1.055f * pow(rgb[2], 0.416666666666666667f) - 0.055f;
+
+
+	x = x / 100;
+	y = y / 100;
+	z = z / 100;*/
+	rgb[0] = 3.2406f * x - 1.5372f * y - 0.4986f * z;
+	rgb[1] = -0.9689f * x + 1.8758f * y + 0.0415f * z;
+	rgb[2] =  0.0557f * x - 0.2040f * y + 1.0570f * z;
+
+	if(rgb[0] <= 0.0031306684425005883f)
+		rgb[0] = 12.92f * rgb[0];
+	else
+		rgb[0] = 1.055f * pow(rgb[0], 0.416666666666666667f) - 0.055f;
+	
+	if(rgb[1] <= 0.0031306684425005883f)
+		rgb[1] = 12.92f * rgb[1];
+	else
+		rgb[1] = 1.055f * pow(rgb[1], 0.416666666666666667f) - 0.055f;
+
+	if(rgb[2] <= 0.0031306684425005883f)
+		rgb[2] = 12.92f * rgb[2];
+	else
+		rgb[2] = 1.055f * pow(rgb[2], 0.416666666666666667f) - 0.055f;  
+
 }
 
 void f_xyz_to_lab(float *lab, float x, float y, float z)
@@ -347,6 +372,22 @@ void f_xyz_to_aces(float *rgb, float x, float y, float z)
 	rgb[2] = matrix[6] * x + matrix[7] * y + matrix[8] * z;
 }
 
+void f_xyz_to_xyY(float *xyY, float x, float y, float z)
+{
+	xyY[0] = x / (x + y + z);
+	xyY[1] = y / (x + y + z);
+	xyY[2] = z / (x + y + z);
+}
+
+void f_xyY_to_xyz(float *xyz, float x, float y, float Luminance)
+{
+	xyz[0] = x * Luminance / y;
+	xyz[1] = Luminance;
+	xyz[2] = Luminance / y * (1.0 - x - y);
+
+}
+
+
 typedef enum{
 	FORGE_CTP_INSIDE,
 	FORGE_CTP_OUTSIDE_EDGE,
@@ -361,7 +402,7 @@ typedef struct{
 	float pos;
 }ForgeColorNearest;
 
-ForgeColorTrianglePriority f_xyz_to_primaries_evaluate_line(float x, float y, float *prime_a, float *prime_b, ForgeColorNearest *nearest)
+void f_xyz_to_primaries_evaluate_line(float x, float y, float *prime_a, float *prime_b, ForgeColorNearest *nearest)
 {
 	float vec_a[2], f, f2, dist;
 	vec_a[0] = prime_b[0] - prime_a[0];
@@ -421,12 +462,26 @@ void f_xyz_to_primaries_evaluate_triangle(float *output_a, float *output_b, floa
 	c /= (vec_a[0] * (prime_c[1] - prime_a[1]) - vec_a[1] * (prime_c[0] - prime_a[0]));
 	b = (vec_a[0] * (x - (prime_a[0] + (prime_c[0] - prime_a[0]) * c)) + vec_a[1] * (y - (prime_a[1] + (prime_c[1] - prime_a[1]) * c))) / (f * (1.0 - c));
 	a = 1.0 - b;
-	*output_a += a * (1.0 - c);
-	*output_b += b * (1.0 - c);
-	*output_c += c;
+	a *= (1.0 - c);
+	b *= (1.0 - c);
+	f = a / prime_a[2];
+	f2 = prime_a[2];
+	if(f < b / prime_b[2])
+	{
+		f = b / prime_b[2];
+		f2 = prime_b[2];
+	}
+	if(f < c / prime_c[2])
+	{
+		f = c / prime_c[2];
+		f2 = prime_c[2];
+	}
+	*output_a += f2 * a;
+	*output_b += f2 * b;
+	*output_c += f2 * c;
 }
 
-ForgeColorTrianglePriority f_xyz_to_primaries_triangle_test_side(float *output_a, float *output_b, float *output_c, float x, float y, float *prime_a, float *prime_b, float *prime_c, ForgeColorNearest *nearest)
+void f_xyz_to_primaries_triangle_test_side(float *output_a, float *output_b, float *output_c, float x, float y, float *prime_a, float *prime_b, float *prime_c, ForgeColorNearest *nearest)
 {
 	int inside = 1;
 	float vec_a[2];
@@ -460,14 +515,14 @@ ForgeColorTrianglePriority f_xyz_to_primaries_triangle_test_side(float *output_a
 void f_xyz_to_primaries_triangle_test(float *output_a, float *output_b, float *output_c, float x, float y, float *prime_a, float *prime_b, float *prime_c, ForgeColorNearest *nearest)
 {
 	if((prime_b[0] - prime_a[0]) * (prime_c[1] - prime_a[1]) - (prime_b[1] - prime_a[1]) * (prime_c[0] - prime_a[0]) > 0)
-		return f_xyz_to_primaries_triangle_test_side(output_a, output_b, output_c, x, y, prime_a, prime_b, prime_c, nearest);
+		f_xyz_to_primaries_triangle_test_side(output_a, output_b, output_c, x, y, prime_a, prime_b, prime_c, nearest);
 	else
-		return f_xyz_to_primaries_triangle_test_side(output_a, output_c, output_b, x, y, prime_a, prime_c, prime_b, nearest);
+		f_xyz_to_primaries_triangle_test_side(output_a, output_c, output_b, x, y, prime_a, prime_c, prime_b, nearest);
 }
 
 void f_xyz_to_primaries_brightness(float *output, float z, unsigned int prime_count, float *prime_coordinates)
 {
-	float max = 0, f, found = 1.0;
+	float max = 0, f, found = 1.0, alpha;
 	unsigned int i;
 	for(i = 0; i < prime_count; i++)
 	{
@@ -481,8 +536,12 @@ void f_xyz_to_primaries_brightness(float *output, float z, unsigned int prime_co
 	if(z > 1.0)
 		z = 1.0;
 	f = z / max;
+	alpha = 1.79;
 	for(i = 0; i < prime_count; i++)
+	{
 		output[i] *= f / prime_coordinates[i * 3 + 2];
+	//	output[i] = output[i] * output[i] * (1.0 - f) + output[i] * f;
+	}
 }
 
 void f_xyz_to_primaries(float *output, float x, float y, float z, unsigned int prime_count, float *prime_coordinates)
@@ -494,7 +553,7 @@ void f_xyz_to_primaries(float *output, float x, float y, float z, unsigned int p
 	{
 		for(i = 0; i < prime_count; i++)
 			output[i] = 0;
-		return FORGE_CTP_OUTSIDE_CORNER;
+		return;
 	}
 //	x /= z;
 //	y /= z;
@@ -504,7 +563,7 @@ void f_xyz_to_primaries(float *output, float x, float y, float z, unsigned int p
 	if(prime_count == 1)
 	{
 		output[0] = z;
-		return FORGE_CTP_OUTSIDE_CORNER;
+		return;
 	}
 	if(prime_count == 2)
 	{
@@ -519,18 +578,18 @@ void f_xyz_to_primaries(float *output, float x, float y, float z, unsigned int p
 		{
 			output[0] = z;
 			output[1] = 0;
-			return FORGE_CTP_OUTSIDE_CORNER;
+			return;
 		}else if(f2 > f)
 		{
 			output[0] = 0;
 			output[1] = z;
-			return FORGE_CTP_OUTSIDE_CORNER;
+			return;
 		}else
 		{
 			f2 /= f;
 			output[0] = z * (1.0 - f2);
 			output[1] = z * f2;
-			return FORGE_CTP_OUTSIDE_EDGE;
+			return;
 		}
 		
 	}

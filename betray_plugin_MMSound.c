@@ -81,7 +81,6 @@ void controller_plugin_callback_main(BInputState *input)
 	float left[3] = {-1, 0, 0};
 	float right[3] = {1, 0, 0};
 	float volume;
-
 	uint in_blocks, out_blocks;
 
     EnterCriticalSection(&b_audio_win_mutex);
@@ -163,7 +162,7 @@ uint betray_audio_read_func(uint8 *data, uint type, uint buffer_size)
 				pint8 = data;
 				for(; i < buffer_size && b_audio_win_collected_in_progress < BETRAY_AUDIO_BLOCK_BYTE_SIZE / 2; i++)
 				{
-				pint8[i] = (uint8)(read[b_audio_win_collected_in_progress] / 256);
+				pint8[i] = (uint8)(read[b_audio_win_collected_in_progress] >> 8);
 					b_audio_win_collected_in_progress++;
 				}
 			break;
@@ -179,7 +178,7 @@ uint betray_audio_read_func(uint8 *data, uint type, uint buffer_size)
 				pint32 = data;
 				for(; i < buffer_size && b_audio_win_collected_in_progress < BETRAY_AUDIO_BLOCK_BYTE_SIZE / 2; i++)
 				{
-					pint32[i] = (int32)read[b_audio_win_collected_in_progress] * 256 * 256;
+					pint32[i] = (int32)read[b_audio_win_collected_in_progress] << 16;
 					b_audio_win_collected_in_progress++;
 				}
 			break;
@@ -244,7 +243,8 @@ void betray_plugin_init(void)
     settings.wFormatTag = WAVE_FORMAT_PCM;
     settings.nBlockAlign = (settings.wBitsPerSample >> 3) * settings.nChannels;
     settings.nAvgBytesPerSec = settings.nBlockAlign * settings.nSamplesPerSec;
-
+	
+	printf("Init sound system!\n");
     if(waveOutOpen(&b_audio_win_device_out, WAVE_MAPPER, &settings, waveOutProc, 0, CALLBACK_FUNCTION) != MMSYSERR_NOERROR)
 	{
 		fprintf(stderr, "Failed to open audio device\n");

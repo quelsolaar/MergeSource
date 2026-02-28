@@ -165,10 +165,10 @@ FStringSortResult f_sort_strings(char *a, char *b)
 				return F_SSR_B;
 
 			char_a = a[a_pos];
-			if(char_a <= "Z")
+			if(char_a <= 'Z')
 				char_a += 32;
 			char_b = b[b_pos];
-			if(char_b <= "Z")
+			if(char_b <= 'Z')
 				char_b += 32;
 
 			if(char_a != char_b)

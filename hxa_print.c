@@ -201,3 +201,43 @@ void hxa_print(HXAFile *file, int data)
 		}
 	}
 }
+
+void hxa_print_layer(HXALayer *layers, unsigned int length)
+{
+	unsigned int i;
+	for(i = 0; i < length * layers->components; i++)
+		printf(", %u", (unsigned int)layers->data.uint8_data[i]);
+}
+
+void hxa_print_layer_runlength(HXALayer *layers, unsigned int length)
+{
+	unsigned int i, j, channels, skip;
+	unsigned char *buffer;
+	channels = layers->components;
+	buffer = layers->data.uint8_data;
+	for(i = 0; i < length; i++)
+	{
+		for(skip = 1; skip < 255 && i + skip < length; skip++)
+		{
+			for(j = 0; j < channels && buffer[channels * (i + skip) + j] == buffer[channels * i + j]; j++);
+			if(j < channels)
+				break;
+		}
+		printf(", %u", skip);
+		for(j = 0; j < channels; j++)
+			printf(", %u", (unsigned int)buffer[channels * i + j]);
+		i += skip;
+		if(i >= length)
+			return;
+		for(skip = 1; skip < 255 && i + skip < length; skip++)
+		{
+			for(j = 0; j < channels && buffer[channels * (i + skip) + j] == buffer[channels * (i + skip - 1) + j]; j++);
+			if(j == channels)
+				break;
+		}
+		printf(", %u", skip);
+		for(j = 0; j < channels * skip; j++)
+			printf(", %u", (unsigned int)buffer[channels * i + j]);
+		i += skip;
+	}
+}

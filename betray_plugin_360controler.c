@@ -51,6 +51,10 @@ void controller_plugin_callback_main(BInputState *input)
 	float deadspace, vec[4];
 	uint i, j;
 	deadspace = betray_settings_slider_get(controller_setting_id);
+	if(deadspace > 0.9)
+		deadspace = 0.9;
+	if(deadspace < 0.0)
+		deadspace = 0.0;
 	deadspace *= deadspace;
 	for(j = 0; j < 4; j++)
 	{

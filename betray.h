@@ -60,30 +60,20 @@ Betray is currently implemented for windows (both 32 and 64 bit) and a iOS port 
 #endif
 
 #if defined __APPLE__
-#include <TargetConditionals.h>
-#if TARGET_OS_IPHONE
 #define BETRAY_CONTEXT_OPENGLES
 #include <OpenGLES/ES2/gl.h>
-#elif TARGET_OS_MAC
-/* We need OpenGL, which is a bit harder to locate on Macintosh systems. */
-#define BETRAY_CONTEXT_OPENGL
-#include <OpenGL/gl.h>
 #endif
+
+/* We need OpenGL, which is a bit harder to locate on Macintosh systems. */
+#if defined __APPLE_CC__
+#define BETRAY_CONTEXT_OPENGL
+#ifndef BETRAY_INTERNAL
+#define main betray_internal_main 
+#endif
+#include <OpenGL/gl.h>
 #endif
 
 #include "b_keys.h"
-
-#if defined (__APPLE__)
-#include <TargetConditionals.h>
-#if TARGET_OS_IPHONE
-#define BETRAY_CUSTOM_MAIN
-#endif
-#endif
-
-//FK: on some platforms we need to have a custom main (betray_main)
-#ifndef BETRAY_CUSTOM_MAIN
-#define betray_main main
-#endif
 
 /* ----------------------------------------------------------------------------------------- */
 
@@ -401,7 +391,7 @@ extern uint		betray_support_functionality(BSupportedFunctionality funtionality);
 Display, screen mode and view angle API (Must always be supported) */
 
 extern void		betray_init(BContextType context_type, int argc, char **argv, uint window_size_x, uint window_size_y, uint samples, boolean window_fullscreen, char *name);
-extern BContextType	betray_context_type_get(); /* Returns the type of context currently active. Can only be called after betray_init. If you want to know what context is possible to create use betray_support_context. This function is useful for finding out what context was created if betray was called with the parameter B_CT_OPENGL_OR_ES*/
+extern BContextType	betray_context_type_get(void); /* Returns the type of context currently active. Can only be called after betray_init. If you want to know what context is possible to create use betray_support_context. This function is useful for finding out what context was created if betray was called with the parameter B_CT_OPENGL_OR_ES*/
 extern boolean	betray_screen_mode_set(uint x_size, uint y_size, uint samples, boolean fullscreen); /* Change screen mode*/
 extern double	betray_screen_mode_get(uint *x_size, uint *y_size, boolean *fullscreen); /* Get the current screen size, and if it is in fullscreen. Any pameters can be set to NULL, if you are not interested in any parameter. The fuinction returns the aspect ratio of the window/display*/
 
@@ -412,7 +402,7 @@ typedef enum{
 
 extern void		betray_screen_mode_safe_get(BetraySafeArea safe_area, float *left, float *right, float *top, float *bottom); /* Get the aspect of areas of the display that is safe to use for action and title. */
 extern void		betray_view_vantage(float *pos); /* The head position compared to screen positioned at 0, 0, 0 with the width randing form -1.0 to 1.0 horizontaly. Should be supported in order to do prespective corect rendering for Sterio scopics and Headtracking. If no headtracking is active the data pointed to will be unaffected. */
-extern void		betray_view_direction(float *matrix);  /* A 4X4 rotation matrix that should be applied to all drawing in order to support multi display solutions and headmounted dispï¿½lays. */
+extern void		betray_view_direction(float *matrix);  /* A 4X4 rotation matrix that should be applied to all drawing in order to support multi display solutions and headmounted dispålays. */
 extern BInputState *betray_get_input_state(void); /* A fiuinction that always returns the current input state. Useful for debugging.*/
 
 
@@ -466,6 +456,7 @@ All keyboard and buttons can be read out using this API. All thes functiuons are
 extern boolean	betray_button_get(uint user_id, uint button); /* was this button pressed this time step */
 extern void		betray_button_get_up_down(uint user_id, boolean *press, boolean *last_press, uint button); /* what is the state of a button this and previous time step*/
 extern boolean	betray_button_get_name(uint user_id, uint button, char *name, uint buffer_size); /* get the name of the key*/
+extern uint		betray_button_loopup(char *name); /* look up a button using its name. */
 extern void 	betray_button_keyboard(uint user_id, boolean show); /* Tell the system that a beyboard is needed. (god for syetms with on screen keyboards)*/
 
 #endif
@@ -508,7 +499,7 @@ extern float	betray_audio_master_volume_get(void); /* Get current volume */
 /* ----- Sound Listener  ---- 
 Betray has a fill recording API that lets you recourd sound sources. */
 
-extern uint		betray_audio_read_units(); /* Returns the number of units available for recording. */
+extern uint		betray_audio_read_units(void); /* Returns the number of units available for recording. */
 extern uint		betray_audio_read_channels_availables(uint unit_id); /* Returns the number of channels each recording unit records */
 extern void		betray_audio_read_channel_directions(uint unit_id, float *vec); /* returns a 3d vector of the channel */
 extern uint		betray_audio_read(uint unit_id, void *data, uint type, uint buffer_size); /* Reads out data from a channel on a recording device to the buffer defined as data. The "type" parameter defines the type of data to be read and the stride of the read data counted in the size of the specified type. The buffer_size defines the maximum number of samples to be read. So the buffer needs to be atleast the data types size times the buffer_size times the stride. The function returns the number of samples actiualy read. */
@@ -536,7 +527,7 @@ typedef enum{
 
 #ifndef BETRAY_PLUGGIN_DEFINES
 
-extern uint		 betray_settings_count(); /* Returns the number of settings available (This number will be static once betray_innit has been called)*/
+extern uint		 betray_settings_count(void); /* Returns the number of settings available (This number will be static once betray_innit has been called)*/
 extern BSettingType betray_settings_type(uint id); /* Returns the BSettingType of a specific setting*/
 extern char		*betray_settings_name(uint id); /* Rewturns the name of a specific setting */
 

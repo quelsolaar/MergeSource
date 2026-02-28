@@ -54,6 +54,8 @@ Text strings stored in meta data are stored the same way as names, but instead o
 
 */
 
+#include "forge.h"
+
 #ifndef HAX_INCLUDE
 #define HAX_INCLUDE
 
@@ -104,7 +106,7 @@ typedef struct{
 	HXAMetaDataType type; // type of value. Stored in the file as a uint8.
 	hxa_uint32 array_length; // how many values are stored / the length of the stored text string (excluding termination)
 	union{
-		hxa_uint64 *int64_value; // integer values
+		hxa_int64 *int64_value; // integer values
 		double *double_value; // double values
 		hxa_uint32 *node_value; // a reference to another node 
 		char *text_value; // text string
@@ -163,7 +165,7 @@ typedef struct{
 
 
 typedef struct{
-	hxa_uint32 layer_count; /* the number of loayers in a stack. */
+	hxa_uint32 layer_count; /* the number of layers in a stack. */
 	HXALayer *layers; /* An array of layers. */
 }HXALayerStack;
 

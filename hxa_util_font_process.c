@@ -34,7 +34,7 @@ typedef struct{
 	unsigned int type[2];
 	unsigned int next[2];
 	unsigned int prev[2];
-}MoEditEdge;
+}IOEditEdge;
 
 typedef struct{
 	unsigned int *loop;
@@ -44,30 +44,30 @@ typedef struct{
 	int used;
 	unsigned int generation;
 	int direction;
-}MoEditLoop;
+}IOEditLoop;
 
 typedef struct{ 
-	MoEditEdge *edges;
+	IOEditEdge *edges;
 	unsigned int edges_allocated;
 	unsigned int edge_count;
 	float *vertex_array;
 	unsigned int *vertex_users;
 	unsigned int vertex_allocated;
 	unsigned int vertex_count;
-	MoEditLoop *loops;
+	IOEditLoop *loops;
 	unsigned int loop_count;
 	unsigned int loop_alloc;
 	unsigned int ref_count;
 	unsigned int *ref;
 	unsigned int *material;
-}MoEditProcess;
+}IOEditProcess;
 
 #define MO_EDIT_PROCESS_COLAPSE_SIZE (1.0 / 5120.0)
 
-extern void mo_edit_process_edge_end_extracate(MoEditProcess *edit, unsigned int edge, unsigned int end);
-extern void mo_edit_process_edge_set(MoEditProcess *edit, unsigned int ref_a, unsigned int ref_b, unsigned int material_a, unsigned int material_b);
+extern void mo_edit_process_edge_end_extracate(IOEditProcess *edit, unsigned int edge, unsigned int end);
+extern void mo_edit_process_edge_set(IOEditProcess *edit, unsigned int ref_a, unsigned int ref_b, unsigned int material_a, unsigned int material_b);
 
-#define f_sqrt_step(shift) \
+#define hxa_util_font_sqrt_step(shift) \
     if((0x40000000l >> shift) + root <= value)          \
     {                                                   \
         value -= (0x40000000l >> shift) + root;         \
@@ -78,30 +78,30 @@ extern void mo_edit_process_edge_set(MoEditProcess *edit, unsigned int ref_a, un
         root = root >> 1;                               \
     }
 
-long f_sqrti(long value)
+long hxa_util_font_sqrti(long value)
 {
     long root = 0;
-    f_sqrt_step(0);
-    f_sqrt_step(2);
-    f_sqrt_step(4);
-    f_sqrt_step(6);
-    f_sqrt_step(8);
-    f_sqrt_step(10);
-    f_sqrt_step(12);
-    f_sqrt_step(14);
-    f_sqrt_step(16);
-    f_sqrt_step(18);
-    f_sqrt_step(20);
-    f_sqrt_step(22);
-    f_sqrt_step(24);
-    f_sqrt_step(26);
-    f_sqrt_step(28);
-    f_sqrt_step(30);
+    hxa_util_font_sqrt_step(0);
+    hxa_util_font_sqrt_step(2);
+    hxa_util_font_sqrt_step(4);
+    hxa_util_font_sqrt_step(6);
+    hxa_util_font_sqrt_step(8);
+    hxa_util_font_sqrt_step(10);
+    hxa_util_font_sqrt_step(12);
+    hxa_util_font_sqrt_step(14);
+    hxa_util_font_sqrt_step(16);
+    hxa_util_font_sqrt_step(18);
+    hxa_util_font_sqrt_step(20);
+    hxa_util_font_sqrt_step(22);
+    hxa_util_font_sqrt_step(24);
+    hxa_util_font_sqrt_step(26);
+    hxa_util_font_sqrt_step(28);
+    hxa_util_font_sqrt_step(30);
     if(root < value)
         ++root;
     return root;
 }
-
+/*
 unsigned long long f_sqrti64(unsigned long long value)
 {	
 	unsigned long long i, root = 0, add;
@@ -113,12 +113,12 @@ unsigned long long f_sqrti64(unsigned long long value)
 			root = add;
 	}
 	return root;
-}
+}*/
 
-unsigned char f_normalize_2di(int *point, int fixed_point_multiplyer)
+unsigned char hxa_util_font_normalize_2di(int *point, int fixed_point_multiplyer)
 {
 	int length;
-	length = f_sqrti(point[0] * point[0] + point[1] * point[1]);
+	length = hxa_util_font_sqrti(point[0] * point[0] + point[1] * point[1]);
 	if(length != 0)
 	{
 		point[0] = (point[0] * fixed_point_multiplyer) / length;
@@ -128,7 +128,7 @@ unsigned char f_normalize_2di(int *point, int fixed_point_multiplyer)
 	return 0;
 }
 
-float f_normalize2f(float *vec)
+float hxa_util_font_normalize2f(float *vec)
 {
 	float f;
 	f = sqrtf(vec[0] * vec[0] + vec[1] * vec[1]);
@@ -137,7 +137,7 @@ float f_normalize2f(float *vec)
 	return f;
 }
 
-void mo_edit_process_make_sure(MoEditProcess *edit)
+void mo_edit_process_make_sure(IOEditProcess *edit)
 {
 	unsigned int i, error;
 	for(i = 0; i < edit->edge_count; i++)
@@ -197,7 +197,7 @@ unsigned int mo_edit_process_material_dominat(unsigned int mat_a, unsigned int m
 		return mat_a;
 	return mat_b;
 }
-unsigned int mo_edit_process_vertex_allocate(MoEditProcess *edit, float x, float y)
+unsigned int mo_edit_process_vertex_allocate(IOEditProcess *edit, float x, float y)
 {
 	float vec[2], f;
 	unsigned int i;
@@ -222,7 +222,7 @@ unsigned int mo_edit_process_vertex_allocate(MoEditProcess *edit, float x, float
 	return edit->vertex_count - 1;
 }
 
-unsigned int mo_edit_find_loop(MoEditProcess *edit, unsigned int start, unsigned int *buffer)
+unsigned int mo_edit_find_loop(IOEditProcess *edit, unsigned int start, unsigned int *buffer)
 {
 	unsigned int pos, next, count = 0, last = -1;
 	pos = start;
@@ -249,7 +249,7 @@ unsigned int mo_edit_find_loop(MoEditProcess *edit, unsigned int start, unsigned
 }
 
 
-void mo_edit_process_edge_end_integrate(MoEditProcess *edit, unsigned int edge, unsigned int end)
+void mo_edit_process_edge_end_integrate(IOEditProcess *edit, unsigned int edge, unsigned int end)
 {
 	float center[2], vec[2], last_vec[2], test[2];
 	unsigned int vertex, ref, pos, start, prevoius, i = 0;
@@ -332,7 +332,7 @@ void mo_edit_process_edge_end_integrate(MoEditProcess *edit, unsigned int edge, 
 
 /*
 
-uint mo_edit_process_vertex_dominance(MoEditProcess *edit)
+uint mo_edit_process_vertex_dominance(IOEditProcess *edit)
 {
 	uint pos, start, next, i, dom;
 
@@ -405,7 +405,7 @@ uint mo_edit_process_vertex_dominance(MoEditProcess *edit)
 	}
 }
 */
-void mo_edit_process_vertex_dominance2(MoEditProcess *edit)
+void mo_edit_process_vertex_dominance2(IOEditProcess *edit)
 {
 	unsigned int i, j, dom;
 	float point[4], vec[2], f;
@@ -451,7 +451,7 @@ void mo_edit_process_vertex_dominance2(MoEditProcess *edit)
 }
 
 
-void mo_edit_process_reduce(MoEditProcess *edit)
+void mo_edit_process_reduce(IOEditProcess *edit)
 {
 	unsigned int i, j, edge, ref[3], next;
 	float point[4], vec[4], f;
@@ -468,7 +468,7 @@ void mo_edit_process_reduce(MoEditProcess *edit)
 			vec[1] = edit->vertex_array[ref[0] * 2 + 1] - edit->vertex_array[ref[2] * 2 + 1];
 			vec[2] = edit->vertex_array[ref[1] * 2 + 0] - edit->vertex_array[ref[2] * 2 + 0];
 			vec[3] = edit->vertex_array[ref[1] * 2 + 1] - edit->vertex_array[ref[2] * 2 + 1];
-			f_normalize2f(vec);
+			hxa_util_font_normalize2f(vec);
 			f = vec[2] * vec[1] - vec[3] * vec[0];
 			if(f < MO_EDIT_PROCESS_COLAPSE_SIZE && f > -MO_EDIT_PROCESS_COLAPSE_SIZE)
 			{
@@ -507,7 +507,7 @@ Be happy!!!
 
 */
 
-void mo_edit_process_edge_end_extracate(MoEditProcess *edit, unsigned int edge, unsigned int end)
+void mo_edit_process_edge_end_extracate(IOEditProcess *edit, unsigned int edge, unsigned int end)
 {
 	unsigned int vertex, pos;
 	vertex = edit->edges[edge].ref[end];
@@ -530,7 +530,7 @@ void mo_edit_process_edge_end_extracate(MoEditProcess *edit, unsigned int edge, 
 	edit->edges[edge].prev[(end + 1) % 2] = edge * 2 + end;
 }
 
-int mo_edit_process_split_edge(MoEditProcess *edit, unsigned int ref_a, unsigned int ref_b, unsigned int material_a, unsigned int material_b)
+int mo_edit_process_split_edge(IOEditProcess *edit, unsigned int ref_a, unsigned int ref_b, unsigned int material_a, unsigned int material_b)
 {
 	float *point_a, *point_b, vector[2], *a, *b, v[2], draw[2];
 	unsigned int i, edge_count, ref[2];
@@ -539,7 +539,7 @@ int mo_edit_process_split_edge(MoEditProcess *edit, unsigned int ref_a, unsigned
 	point_b = &edit->vertex_array[ref_b * 2];
 	vector[0] = point_b[0] - point_a[0];
 	vector[1] = point_b[1] - point_a[1];
-	f_normalize2f(vector);
+	hxa_util_font_normalize2f(vector);
 	for(i = 0; i < edge_count; i++)
 	{
 		a = &edit->vertex_array[edit->edges[i].ref[0] * 2];
@@ -550,13 +550,13 @@ int mo_edit_process_split_edge(MoEditProcess *edit, unsigned int ref_a, unsigned
 			{
 				v[0] = b[0] - a[0];
 				v[1] = b[1] - a[1];
-				f_normalize2f(v);
+				hxa_util_font_normalize2f(v);
 				if((point_a[0] - a[0]) * v[1] - (point_a[1] - a[1]) * v[0] < -0.0/*MO_EDIT_PROCESS_COLAPSE_SIZE * -0.1*/)
 				{
 					if((point_b[0] - a[0]) * v[1] - (point_b[1] - a[1]) * v[0] > 0.0/*MO_EDIT_PROCESS_COLAPSE_SIZE * 0.1*/)
 					{
 						mo_edit_process_make_sure(edit);					
-						f_intersect2f(draw, a, b, point_a, point_b);
+						hxa_util_intersect2f(draw, a, b, point_a, point_b);
 						ref[0] = edit->edges[i].ref[0];
 						ref[1] = mo_edit_process_vertex_allocate(edit, draw[0], draw[1]);
 						if(ref[1] != edit->edges[i].ref[0] && ref[1] != edit->edges[i].ref[0])
@@ -582,13 +582,13 @@ int mo_edit_process_split_edge(MoEditProcess *edit, unsigned int ref_a, unsigned
 			{
 				v[0] = b[0] - a[0];
 				v[1] = b[1] - a[1];
-				f_normalize2f(v);
+				hxa_util_font_normalize2f(v);
 				if((point_a[0] - a[0]) * v[1] - (point_a[1] - a[1]) * v[0] > MO_EDIT_PROCESS_COLAPSE_SIZE * 1)
 				{
 					if((point_b[0] - a[0]) * v[1] - (point_b[1] - a[1]) * v[0] < MO_EDIT_PROCESS_COLAPSE_SIZE * -1)
 					{
 						mo_edit_process_make_sure(edit);
-						f_intersect2f(draw, a, b, point_a, point_b);
+						hxa_util_intersect2f(draw, a, b, point_a, point_b);
 						ref[0] = edit->edges[i].ref[0];
 						ref[1] = mo_edit_process_vertex_allocate(edit, draw[0], draw[1]);
 						if(ref[1] != edit->edges[i].ref[0] && ref[1] != edit->edges[i].ref[0])
@@ -614,7 +614,7 @@ int mo_edit_process_split_edge(MoEditProcess *edit, unsigned int ref_a, unsigned
 }
 
 
-void mo_edit_process_edge_set(MoEditProcess *edit, unsigned int ref_a, unsigned int ref_b, unsigned int material_a, unsigned int material_b)
+void mo_edit_process_edge_set(IOEditProcess *edit, unsigned int ref_a, unsigned int ref_b, unsigned int material_a, unsigned int material_b)
 {
 	float vec[2], tmp[2], f, length;
 	unsigned int i, edge;
@@ -717,10 +717,10 @@ void mo_edit_process_edge_set(MoEditProcess *edit, unsigned int ref_a, unsigned 
 }
 
 
-MoEditProcess *mo_edit_process_init(float *vertex_array, unsigned int *loop_sizes, unsigned int loop_count)
+IOEditProcess *mo_edit_process_init(float *vertex_array, unsigned int *loop_sizes, unsigned int loop_count)
 {
 	unsigned int mirror_count[] = {1, 2, 3, 4, 2, 4};
-	MoEditProcess *edit;
+	IOEditProcess *edit;
 	unsigned int i, j, k, size;
 	size = loop_sizes[loop_count - 1];
 	edit = malloc(sizeof *edit);
@@ -753,7 +753,7 @@ MoEditProcess *mo_edit_process_init(float *vertex_array, unsigned int *loop_size
 	return edit;
 }
 
-void mo_edit_process_surround(MoEditProcess *edit)
+void mo_edit_process_surround(IOEditProcess *edit)
 {
 	float max[2], min[2];
 	unsigned int square[4];
@@ -790,7 +790,7 @@ void mo_edit_process_surround(MoEditProcess *edit)
 }
 
 
-void mo_edit_process_loop_extract(MoEditProcess *edit, unsigned int material_id)
+void mo_edit_process_loop_extract(IOEditProcess *edit, unsigned int material_id)
 {
 	float vec[2], f, test[2];
 	unsigned int *buffer, count;
@@ -828,7 +828,7 @@ void mo_edit_process_loop_extract(MoEditProcess *edit, unsigned int material_id)
 }
 
 
-void mo_edit_process_re_ingest(MoEditProcess *edit)
+void mo_edit_process_re_ingest(IOEditProcess *edit)
 {
 	unsigned int i, j;
 	for(i = 0; i < edit->vertex_count; i++)
@@ -843,7 +843,7 @@ void mo_edit_process_re_ingest(MoEditProcess *edit)
 	edit->loop_count = 0;
 }
 
-void mo_edit_process_free(MoEditProcess *edit)
+void mo_edit_process_free(IOEditProcess *edit)
 {
 	free(edit->edges);
 	free(edit->vertex_array);
@@ -866,7 +866,7 @@ int mo_edit_process_loop_direction(unsigned int *loop, unsigned int loop_length,
 }
 
 
-void mo_edit_reloop(MoEditProcess *edit)
+void mo_edit_reloop(IOEditProcess *edit)
 {
 	unsigned int i, j, k, pos, next, start_edge, edge, count = 0, vertex_id, goal_id, *buffer, buffer_use;
 	float goal_vec[2], vec[2], f, best;
@@ -904,7 +904,7 @@ void mo_edit_reloop(MoEditProcess *edit)
 					{
 						vec[0] = edit->vertex_array[edit->edges[edge / 2].ref[(edge + 1) % 2] * 2 + 0] - edit->vertex_array[edit->edges[edge / 2].ref[edge % 2] * 2 + 0]; 
 						vec[1] = edit->vertex_array[edit->edges[edge / 2].ref[(edge + 1) % 2] * 2 + 1] - edit->vertex_array[edit->edges[edge / 2].ref[edge % 2] * 2 + 1];
-						f_normalize2f(vec);
+						hxa_util_font_normalize2f(vec);
 						f = goal_vec[0] * vec[0] + goal_vec[1] * vec[1];
 						if(f > best)
 						{
@@ -930,7 +930,7 @@ void mo_edit_reloop(MoEditProcess *edit)
 }
 
 
-void mo_edit_process_sort(MoEditProcess *edit)
+void mo_edit_process_sort(IOEditProcess *edit)
 {
 	unsigned int i, j, generation;
 
@@ -964,7 +964,7 @@ void mo_edit_process_sort(MoEditProcess *edit)
 
 
 
-unsigned int mo_edit_loop_connect_intersect_test(MoEditProcess *edit, unsigned int other_point, unsigned int target_vertex, unsigned int *loop, unsigned int loop_count)
+unsigned int mo_edit_loop_connect_intersect_test(IOEditProcess *edit, unsigned int other_point, unsigned int target_vertex, unsigned int *loop, unsigned int loop_count)
 {
 	float *a, *b, *point_a, *point_b, vector[2], v[2], x;
 	unsigned int i, ii;
@@ -992,7 +992,7 @@ unsigned int mo_edit_loop_connect_intersect_test(MoEditProcess *edit, unsigned i
 						{
 							if(loop[i] != target_vertex && loop[ii] != target_vertex)
 							{
-								f_intersect2f(vector, a, b, point_a, point_b);
+								hxa_util_intersect2f(vector, a, b, point_a, point_b);
 								if(a[0] > b[0])
 									return i;
 								else
@@ -1008,7 +1008,7 @@ unsigned int mo_edit_loop_connect_intersect_test(MoEditProcess *edit, unsigned i
 }
 
 
-unsigned int mo_edit_loop_merge_loops(MoEditProcess *edit, unsigned int *ref, unsigned int *outer, unsigned int outer_count, unsigned int *inner, unsigned int inner_count, unsigned int inner_start, int direction)
+unsigned int mo_edit_loop_merge_loops(IOEditProcess *edit, unsigned int *ref, unsigned int *outer, unsigned int outer_count, unsigned int *inner, unsigned int inner_count, unsigned int inner_start, int direction)
 {
 	float x, y, tmp, vec[2], vec1[2], vec2[2], best = 100000000000;
 	unsigned int i, found = -1, id = 0, count;
@@ -1048,10 +1048,10 @@ unsigned int mo_edit_loop_merge_loops(MoEditProcess *edit, unsigned int *ref, un
 			vec[1] = edit->vertex_array[outer[i] * 2 + 1];
 			vec1[0] = edit->vertex_array[outer[(i + 1) % outer_count] * 2 + 0] - vec[0];
 			vec1[1] = edit->vertex_array[outer[(i + 1) % outer_count] * 2 + 1] - vec[1];
-			f_normalize2f(vec1);
+			hxa_util_font_normalize2f(vec1);
 			vec2[0] = edit->vertex_array[outer[(i + outer_count - 1) % outer_count] * 2 + 0] - vec[0];
 			vec2[1] = edit->vertex_array[outer[(i + outer_count - 1) % outer_count] * 2 + 1] - vec[1];
-			f_normalize2f(vec2);
+			hxa_util_font_normalize2f(vec2);
 			vec[0] = vec[0] - x + vec1[0] + vec2[0];
 			vec[1] = vec[1] - y + vec1[1] + vec2[1];
 			tmp = vec[0] * vec[0] + vec[1] * vec[1];
@@ -1097,7 +1097,7 @@ unsigned int mo_edit_loop_merge_loops(MoEditProcess *edit, unsigned int *ref, un
 }
 
 
-void mo_edit_loop_remove_inside(MoEditProcess *edit)
+void mo_edit_loop_remove_inside(IOEditProcess *edit)
 {
 	unsigned int i, j, k;
 	float vec[2], *p, *p2, point[2], f;
@@ -1132,7 +1132,7 @@ void mo_edit_loop_remove_inside(MoEditProcess *edit)
 						generation++;
 */
 
-void mo_edit_loop_connect(MoEditProcess *edit)
+void mo_edit_loop_connect(IOEditProcess *edit)
 {
 	unsigned int i, j, k, *holes, hole_count, *loop, start, size, **original_loops, *original_loop_size, *original_loop_material, original_loop_count = 0;
 	float best, test[2];
@@ -1247,7 +1247,7 @@ void mo_edit_loop_connect(MoEditProcess *edit)
 }
 
 
-void mo_edit_loop_polygonize(MoEditProcess *edit, unsigned int *loop, unsigned int size, unsigned int *ref)
+void mo_edit_loop_polygonize(IOEditProcess *edit, unsigned int *loop, unsigned int size, unsigned int *ref)
 {
 	unsigned int i = 0, a = 0, b = 1, c = 2, vertex, count = 2, found[3], output = 0, ref_length = 0, save[2];
 	float *array, vec[2], *v, *base, *back, sides[4], f, dist, best;
@@ -1271,7 +1271,7 @@ void mo_edit_loop_polygonize(MoEditProcess *edit, unsigned int *loop, unsigned i
 				base = &array[loop[c] * 2];
 				vec[0] = array[loop[a] * 2 + 0] - base[0];
 				vec[1] = array[loop[a] * 2 + 1] - base[1];
-				f_normalize2f(vec);
+				hxa_util_font_normalize2f(vec);
 
 				back = &array[loop[b] * 2 + 0];
 				dist = (vec[1] * (back[0] - base[0]) - vec[0] * (back[1] - base[1]));
@@ -1388,8 +1388,8 @@ int mo_edit_process_polygon_turn_test(unsigned int *neighbor, unsigned int *refe
 
 	center_vec[1][0] = corners[3][0] - corners[1][0];
 	center_vec[1][1] = corners[3][2] - corners[1][2];
-	f_normalize_2di(center_vec[0], MOON_FIXED_POINT); 
-	f_normalize_2di(center_vec[1], MOON_FIXED_POINT); 
+	hxa_util_font_normalize_2di(center_vec[0], MOON_FIXED_POINT); 
+	hxa_util_font_normalize_2di(center_vec[1], MOON_FIXED_POINT); 
 
 
 	
@@ -1398,10 +1398,10 @@ int mo_edit_process_polygon_turn_test(unsigned int *neighbor, unsigned int *refe
 	if((corners[2][0] - corners[1][0]) * center_vec[1][1] - (corners[2][2] - corners[1][2]) * center_vec[1][0] < 0)
 		return FALSE;
 
-	f_normalize_2di(edge_vec[0], MOON_FIXED_POINT); 
-	f_normalize_2di(edge_vec[1], MOON_FIXED_POINT); 
-	f_normalize_2di(edge_vec[2], MOON_FIXED_POINT); 
-	f_normalize_2di(edge_vec[3], MOON_FIXED_POINT); 
+	hxa_util_font_normalize_2di(edge_vec[0], MOON_FIXED_POINT); 
+	hxa_util_font_normalize_2di(edge_vec[1], MOON_FIXED_POINT); 
+	hxa_util_font_normalize_2di(edge_vec[2], MOON_FIXED_POINT); 
+	hxa_util_font_normalize_2di(edge_vec[3], MOON_FIXED_POINT); 
 	
 	/* need convex test here*/
 
@@ -1473,7 +1473,7 @@ void mo_edit_process_polygon_turn_all(unsigned int *neighbor, unsigned int *refe
 	free(buffer);
 }
 
-void mo_edit_process_polygonize(MoEditProcess *edit)
+void mo_edit_process_polygonize(IOEditProcess *edit)
 {
 	unsigned int i, j, size, *ref, *neighbor, building = MO_LST_FACTORY_UNASIGNED;
 	int *vertex_array;
@@ -1509,7 +1509,7 @@ void mo_edit_process_polygonize(MoEditProcess *edit)
 
 void mo_edit_process_deploy(float *vertex_array, unsigned int *loop_sizes, unsigned int loop_count, ProcessOutput *output)
 {
-	MoEditProcess *edit;
+	IOEditProcess *edit;
 	float offset[2] = {0, 0};
 	edit = mo_edit_process_init(vertex_array, loop_sizes, loop_count);
 	mo_edit_reloop(edit);

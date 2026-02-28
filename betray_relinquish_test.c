@@ -179,7 +179,7 @@ void b_test_input_handler(BInputState *input, void *user_pointer)
 		r_matrix_push(NULL);
 		r_matrix_translate(NULL, input->pointers[0].pointer_x, input->pointers[0].pointer_y, 0);
 
-	/*	for(i = 0; i < 11; i++)
+		for(i = 0; i < 11; i++)
 		{
 			for(j = 0; j < 11; j++)
 			{
@@ -191,7 +191,7 @@ void b_test_input_handler(BInputState *input, void *user_pointer)
 					r_matrix_pop(NULL);
 				}
 			}
-		}*/
+		}
 		r_matrix_pop(NULL);
 		
 		/* draw out any data comming from the Microphone*/
@@ -356,8 +356,8 @@ int main(int argc, char **argv)
 		exit(0);
 	}
 	/* initialize betray by opening a screen */
-	betray_init(B_CT_OPENGL_OR_ES, argc, argv, 0, 0, 1, TRUE, "Betray Relinquish Test Application");
-//	betray_init(B_CT_OPENGL_OR_ES, argc, argv, 800, 600, 0, FALSE, "Betray Relinquish Test Application");
+//	betray_init(B_CT_OPENGL_OR_ES, argc, argv, 0, 0, 1, TRUE, "Betray Relinquish Test Application");
+	betray_init(B_CT_OPENGL_OR_ES, argc, argv, 800, 600, 0, FALSE, "Betray Relinquish Test Application");
 	
 	/* Accessing clip board */
 

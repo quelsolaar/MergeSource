@@ -2725,11 +2725,11 @@ uint8 *assemble_json_object_member_add_create(uint8 *object, char *name, AJsonTy
 		break;
 		case A_JT_NUMBER_DECIMAL :
 		{
-			f_debug_memory();
+			f_debug_mem_check_bounds();
 			memcpy(&m[1], &((AJsonDecimalNumber *)data)->integer, sizeof(int64));
-			f_debug_memory();
+			f_debug_mem_check_bounds();
 			m[1 + sizeof(int64)] = ((AJsonDecimalNumber *)data)->decimal;
-			f_debug_memory();
+			f_debug_mem_check_bounds();
 		}
 		break;
 		case A_JT_OBJECT :

@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include "betray.h"
-#include <android/keycodes.h>
+
 
 char *betray_button_unused = "Unnamed";
 

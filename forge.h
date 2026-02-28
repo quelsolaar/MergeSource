@@ -1,13 +1,29 @@
 /*Forge is a basic utility library, consisting of pure c functions that are useful in any development. Forge is meant to be included in to all c files and all other Quel Solaar libraries and applications. Because it is included in all files it can provide some very useful functiuonality such as debugging memory and help find memory leaks. Forge is designed to be lightweight and compleatly platform and dependency indipendent.
 */
+#if defined(_MSC_VER)
 #define _CRT_SECURE_NO_WARNINGS
 #pragma warning(disable:4996)
 #pragma warning(disable:4703)
 #pragma warning(disable:4996)
-#pragma warning(disable:4664)
+//#pragma warning(disable:4664) 
 #pragma warning(disable:4305)
 #pragma warning(disable:4244)
+#pragma warning(disable:4101)
 #pragma warning(error:4013)
+//#pragma warning(error:4020)
+#pragma warning(error:4716)
+#pragma warning(error:4554)
+#pragma warning(error:4553)
+#pragma warning(error:4334)
+#pragma warning(error:4431) /* implicit int type */
+//#pragma warning(error:4047) // FIX ME
+//#pragma warning(error:4774) // Forces printf functions to have a string literal as first argument.
+// C4255
+//#pragma warning(push, 4)
+#endif
+
+
+//#pragma warning( disable : 4507 34; once : 4385; error : 164 )
 
 #if !defined(TYPES_H)
 #define	TYPES_H
@@ -57,6 +73,8 @@ typedef double freal;
 typedef float freal;
 #endif
 
+
+
 #define PI  3.141592653 /* Defines PI */
 #define FORGE_IS_BIG_ENDIAN (*(short *)"\0\xff" < 0x100)
 
@@ -71,55 +89,91 @@ typedef float freal;
 
 
 #if !defined(F_NO_MEMORY_DEBUG)
-//#define F_MEMORY_DEBUG /* turns on the memory debugging system */
+#define FORGE_MEMORY_DEBUG /* turns on the memory debugging system */
 //#define F_MEMORY_PRINT /* turns on the memory debugging system */
 #endif
 #if !defined(F_EXIT_CRASH)
 //#define F_EXIT_CRASH /* turns on the crash on exit */
 #endif
 
-/* ----- Debugging -----
-If F_MEMORY_DEBUG  is enabled, the memory debugging system will create macros that replace malloc, free and realloc and allows the system to keppt track of and report where memory is beeing allocated, how much and if the memory is beeing freed. This is very useful for finding memory leaks in large applications. The system can also over allocate memory and fill it with a magic number and can therfor detect if the application writes outside of the allocated memory. if F_EXIT_CRASH is defined, then exit(); will be replaced with a funtion that writes to NULL. This will make it trivial ti find out where an application exits using any debugger., */
-
 #include <stdlib.h>
 #include <stdio.h>
 
-extern void f_debug_memory_init(void (*lock)(void *mutex), void (*unlock)(void *mutex), void *mutex); /* Required for memory debugger to be thread safe */
-extern void *f_debug_mem_malloc(size_t size, char *file, uint line); /* Replaces malloc and records the c file and line where it was called*/
-extern void *f_debug_mem_realloc(void *pointer, size_t size, char *file, uint line); /* Replaces realloc and records the c file and line where it was called*/
-extern void f_debug_mem_free(void *buf, char *file, uint line); /* Replaces free and records the c file and line where it was called*/
-extern boolean f_debug_mem_comment(void *buf, char *comment); /* add a comment to an allocation that can help identyfy its use. */
-extern void f_debug_mem_print(uint min_allocs); /* Prints§ out a list of all allocations made, their location, how much memorey each has allocated, freed, and how many allocations have been made. The min_allocs parameter can be set to avoid printing any allocations that have been made fewer times then min_allocs */
-extern void f_debug_mem_reset(void); /* f_debug_mem_reset allows you to clear all memory stored in the debugging system if you only want to record allocations after a specific point in your code*/
-extern size_t f_debug_mem_consumption(void); /* add up all memory consumed by mallocsd and reallocs coverd by the memory debugger .*/
-extern boolean f_debug_mem_query(void *pointer, uint *line, char **file, size_t *size); /* query the size and place of allocation of a pointer */
-extern boolean f_debug_mem_test(void *pointer, size_t size, boolean ignore_not_found); /* query if a bit of memory is safe to access. */
-extern boolean f_debug_memory(); /*f_debug_memory checks if any of the bounds of any allocation has been over written and reports where to standard out. The function returns TRUE if any error was found*/
+/* ----- Meomory Debugging -----
+If FORGE_MEMORY_DEBUG  is enabled, the memory debugging system will create macros that replace malloc, free and realloc and allows the system to keppt track of and report where memory is beeing allocated, how much and if the memory is beeing freed. This is very useful for finding memory leaks in large applications. The system can also over allocate memory and fill it with a magic number and can therfor detect if the application writes outside of the allocated memory. if F_EXIT_CRASH is defined, then exit(); will be replaced with a funtion that writes to NULL. This will make it trivial ti find out where an application exits using any debugger., */
 
-extern void *f_debug_memory_fopen(const char *file_name, const char *mode, char *file, uint line);
-extern void f_debug_memory_fclose(void *f, char *file, uint line);
+/*
+#if defined(DEBUG) || defined(_DEBUG)
+#define FORGE_MEMORY_DEBUG
+#endif
+*/
+
+#define FORGE_MEMORY_NULL_ALLOCATION_ERROR /* Triggers and error if an allocation function returns NULL (out of memory)*/
+#define FORGE_MEMORY_OVER_ALLOC 64 /* Each allocation will be made larger, and the over allocation filled with a magic number, that can be used to detect buffer overruns. */
+#define FORGE_MEMORY_PRE_PADDIG 16 /* How much of the over allocation is made infront of the allocations. Must be smaller than FORGE_MEMORY_OVER_ALLOC and even to the largest alignment of any type */
+#define FORGE_DOUBLE_FREE_CHECK /* Stores reed pointers, to check if they are ever freed again. */
+#define FORGE_USE_AFTER_FREE_CHECK /* Stores freed memory, to check if it is ever written to again. */
+//#define FORGE_MEMORY_CHECK_ALWAYS /* calls f_debug_mem_check_bounds(); any time malloc, free or realloc is called. Very slow but good for narrowing down bugs. */
+#define FORGE_WARN_ON_REALLOC_NULL /* warns the user when reallocing a NULL pointer. */
+#define FORGE_CALL_ON_ERROR  abort(); /* Set to anything you want to happen when the memory debugger finds an error. (can be abort(), exit(1) or a function with a break point in it for example.) */
+
+#define FORGE_STACK_SIZE (1024 * 1024) /* a guestimate size of that stack that Forge will use to guestimate if a pointer is a stack pointer */
+
+extern void		f_debug_mem_thread_safe_init(int (*lock)(void *mutex), int (*unlock)(void *mutex), void *mutex); /* Required for memory debugger to be thread safe. If you dont use threads you do not need to initialize. */
+
+/*
+    Sample code for initiailizing using posix therads;
+
+	pthread_mutex_t *mutex;
+	pthread_mutex_init(mutex, NULL);
+	f_debug_mem_thread_safe_init(pthread_mutex_lock, pthread_mutex_unlock, mutex);
+*/
+
+/* replacement functions */
+
+extern void		*f_debug_mem_malloc(size_t size, char *file, unsigned int line); /* Replaces malloc and records the c file and line where it was called*/
+extern void		*f_debug_mem_realloc(void *pointer, size_t size, char *file, unsigned int line); /* Replaces realloc and records the c file and line where it was called*/
+extern void		f_debug_mem_free(void *buf, char *file, unsigned int line); /* Replaces free and records the c file and line where it was called*/
+
+/* memory debugging utilities */
+
+extern boolean	f_debug_mem_comment(void *buf, char *comment); /* add a comment to an allocation that can help identyfy its use. */
+extern void		f_debug_mem_print(unsigned int min_allocs); /* Prints out a list of Iall allocations made, their location, how much memory each has allocated, freed, and how many allocations have been made. The min_allocs parameter can be set to avoid printing any allocations that have been made fewer times then min_allocs */
+extern void		f_debug_mem_reset(void); /* f_debug_mem_reset allows you to clear all memory stored in the debugging system if you only want to record allocations after a specific point in your code*/
+extern size_t	f_debug_mem_consumption(void); /* add up all memory consumed by mallocs and reallocs coverd by the memory debugger .*/
+extern void		*f_debug_mem_query_allocation(void *pointer, unsigned int *line, char **file, size_t *size); /* query the size and place of allocation of a pointer */
+extern boolean	f_debug_mem_query_is_allocated(void *pointer, size_t size, boolean ignore_not_found); /* query if a bit of memory is safe to access. */
+
+extern boolean	f_debug_mem_check_bounds(void); /* f_debug_mem_check_bounds checks if any of the bounds of any allocation has been over written and reports where to standard out. The function returns TRUE if any error was found*/
+
+extern boolean	f_debug_mem_check_stack_reference(void); /* check if any allocated memory contains any pointers that points to suspected stack pointers. */
+extern void		f_debug_mem_check_heap_reference(unsigned int minimum_allocations); /* Find any allocations that cant be found any reference to in heap memory. ignores any allocation that has been made less than minimum_allocations times */
 
 
-#ifdef F_MEMORY_DEBUG
+extern void f_debug_mem_log(void *file_pointer); /* Give a FILE pointer to this function to print out a log line every time memory is allocated, freed or realloced. Set to NULL to turn off. */
 
+#ifdef FORGE_MEMORY_DEBUG
 
 #define malloc(n) f_debug_mem_malloc(n, __FILE__, __LINE__) /* Replaces malloc. */
 #define realloc(n, m) f_debug_mem_realloc(n, m, __FILE__, __LINE__) /* Replaces realloc. */
 #define free(n) f_debug_mem_free(n, __FILE__, __LINE__) /* Replaces free. */
 
-#define fopen(n, m) f_debug_memory_fopen(n, m, __FILE__, __LINE__)
-#define fclosee(n) f_debug_memory_fclose(n, __FILE__, __LINE__)
-
 #else
 #ifndef F_MEMORY_INTERNAL
 
-#define f_debug_memory_init(n, m, k)
+/* if the memory debugging system is turned off, all calls to debug it are removed. */
+
+#define f_debug_mem_thread_safe_init(n, m, k)
 #define f_debug_mem_comment(n, m)
 #define f_debug_mem_print(n)
 #define f_debug_mem_reset()
-#define f_debug_mem_consumption() 0
-#define f_debug_mem_query(n, m, k, l)
-#define f_debug_memory()
+#define f_debug_mem_consumption()
+#define f_debug_mem_query_allocation(n, m, k, l)
+#define f_debug_mem_query_is_allocated(n, m, k)
+#define f_debug_mem_check_bounds()
+#define f_debug_mem_check_stack_reference()
+#define f_debug_mem_check_heap_reference(n)
+#define f_debug_mem_log(n)
 
 #endif
 #endif
@@ -211,6 +265,12 @@ extern void f_intersect2d(double *output, double *line_a0, double *line_a1, doub
 extern int f_intersect_test2d(double *line_a0, double *line_a1, double *line_b0, double *line_b1); /* Tests if two 64bit float line segments intersect.*/
 extern void f_intersect3d(double *output, double *line_a0, double *line_a1, double *line_b0, double *line_b1); /* finds the point on line line_a0 to line_a1 that is closest to line line_b0 to line_b1. */
 extern float f_distance_to_line3d(double *line_a, double *line_b, double *pos); /* finds the distance between a point and a line in 3D for 64 bit doubles */
+extern void f_surface_cross3d(double *output, double *a, double *b, double *subtract);
+
+/*------- 16 bit float math -------------*/
+
+extern unsigned short f_float32_to_float16(float value); /*  Converts a 32 bit float to a 16 bit float*/
+extern float f_float16_to_float32(unsigned short value); /* Converts a 16 bit float to a 32 bit float*/
 
 /*------- Int vector math -------------
 Vector math for integer types. */
@@ -224,7 +284,7 @@ extern uint64 f_sqrti64(uint64 value); /* Integer square root.*/
 extern boolean f_normalize_2di64(int64 *point, int64 fixed_point_multiplyer); /* Normalizes a 2D vector of integers. The fixed_point_multiplyer is used to set what is considerd to be one. */
 extern boolean f_normalize_3di64(int64 *point, int64 fixed_point_multiplyer); /* Normalizes a 2D vector of integers. The fixed_point_multiplyer is used to set what is considerd to be one. */
 extern void f_intersect2di64(int64 *output, int64 *line_a0, int64 *line_a1, int64 *line_b0, int64 *line_b1); /* Inter sects two 2d integer lines. */
-
+extern int64 f_intersect_test2di64(int64 *line_a0, int64 *line_a1, int64 *line_b0, int64 *line_b1); /* tests if two 64 bit interger lines intersect */
 
 /*------- Matrix operations ------------------------
 Matrix operations for 4x4 matrices.*/
@@ -257,6 +317,10 @@ extern void f_pos_quaternion_scale_to_matrix_invd(double *pos, double *quaternio
 
 extern void f_matrix_rotatef(float *matrix, float angle, float x, float y, float z); /* Generates a 4x4 32 bit float matrix rotating agnle number of degrees around the axis described by x, y, and z */
 extern void f_matrix_rotated(double *matrix, double angle, double x, double y, double z); /* Generates a 4x4 64 bit float matrix rotating agnle number of degrees around the axis described by x, y, and z */
+extern boolean f_three_points_to_circlef(float *out_center, float *radius_output, float a[2], float b[2], float c[2]); /* Computes the Circle formed by intersecting 3 points in 2d. Will return false if all oints are in a line */
+extern boolean f_three_points_to_circled(double *out_center, double *radius_output, double a[2], double b[2], double c[2]);/* Computes the Circle formed by intersecting 3 points in 2d. Will return false if all oints are in a line */
+
+
 
 /*------- Matrix Creation ------------------------
 These functions lets you create a matrix from two points and an optional origo (The origo can be left as NULL). The first vector dominates and the second will be used to determain rotation arround trhe first vecrtor*/
@@ -377,8 +441,10 @@ extern unsigned char *f_image_scale_uint8(unsigned char *data, unsigned int in_x
 /* ------ UTF8 support ---------
 Functions for converting UTF8 character sequences to uint32 Unicode codes. */
 
-uint32 f_utf8_to_uint32(char *c, uint *pos); /* converts a string c at position pos to a unt32. pos will be modifyed to jump forward the number of bytes the character takes up. */
-uint f_uint32_to_utf8(uint32 character, char *out); /*convets a 32 bit unicode charcter to UTF8. out param needs space for at least 6 8bit characters. returns the number of ytes used. */
+extern uint32 f_utf8_to_uint32(char *c, uint *pos); /* converts a string c at position pos to a unt32. pos will be modifyed to jump forward the number of bytes the character takes up. */
+extern uint f_uint32_to_utf8(uint32 character, char *out); /*convets a 32 bit unicode charcter to UTF8. out param needs space for at least 6 8bit characters. returns the number of ytes used. */
+extern uint f_uint32_to_utf8_string(uint32 *string, char *out, size_t buffer_size); /* converts a 32 bit unicode string to UTF8 */
+extern uint f_uint16_to_utf8_string(uint16 *string, char *out, size_t buffer_size);/* converts a 16 bit unicode string to UTF8. mainly used for windows */
 
 /* ------ Text ---------
 Functions for manipulating and parsing text. */
@@ -403,6 +469,8 @@ extern uint		f_text_parce_double(char *text, double *real_output);
 
 extern void		f_print_raw(uint8 *data, uint size);
 extern void		f_fprint_raw(FILE *file, uint8 *data, uint size);
+
+extern boolean	f_text_convert_to_c(char *text, char *output, uint output_buffer_size);
 
 extern boolean	f_text_obfuscate(char *out_buffer, uint buffer_size, char *in_buffer);
 extern void		f_text_obfuscate_print(char *in_buffer);

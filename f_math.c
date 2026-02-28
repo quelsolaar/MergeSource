@@ -1,3 +1,14 @@
+#define f_sqrt_step(shift) \
+    if((0x40000000l >> shift) + root <= value)          \
+    {                                                   \
+        value -= (0x40000000l >> shift) + root;         \
+        root = (root >> 1) | (0x40000000l >> shift);    \
+    }                                                   \
+    else                                                \
+    {                                                   \
+        root = root >> 1;                               \
+    }
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -625,7 +636,7 @@ void f_intersect3d(double *output, double *line_a0, double *line_a1, double *lin
 
 int f_intersect_test2d(double *line_a0, double *line_a1, double *line_b0, double *line_b1)
 {
-	double vec[3];
+	double vec[2];
 	vec[0] = line_a0[0] - line_a1[0];
 	vec[1] = line_a0[1] - line_a1[1];
 	if((vec[1] * (line_b0[0] - line_a1[0]) - vec[0] * (line_b0[1] - line_a1[1]) > 0) == 
@@ -886,39 +897,50 @@ void f_intersect2di(int *output, int *line_a0, int *line_a1, int *line_b0, int *
 
 void f_intersect2di64(int64 *output, int64 *line_a0, int64 *line_a1, int64 *line_b0, int64 *line_b1)
 {
-	int64 i, tmp, line64_a0[2], line64_a1[2], line64_b0[2], line64_b1[2];
-	line64_a0[0] = (int64)line_a0[0];
-	line64_a0[1] = (int64)line_a0[1];
-	line64_a1[0] = (int64)line_a1[0];
-	line64_a1[1] = (int64)line_a1[1];
-	line64_b0[0] = (int64)line_b0[0];
-	line64_b0[1] = (int64)line_b0[1];
-	line64_b1[0] = (int64)line_b1[0];
-	line64_b1[1] = (int64)line_b1[1];
-	i = (line64_a0[0] - line64_a1[0]) * (line64_b0[1] - line64_b1[1]) - (line64_a0[1] - line64_a1[1]) * (line64_b0[0] - line64_b1[0]);
+	int64 i, tmp;
+
+	i = (line_a0[0] - line_a1[0]) * (line_b0[1] - line_b1[1]) - (line_a0[1] - line_a1[1]) * (line_b0[0] - line_b1[0]);
 	if(i == 0)
 	{
 		output[0] = (line_a0[0] + line_a1[0]) / 2;
 		output[1] = (line_a0[1] + line_a1[1]) / 2;
 		return;
 	}
-	tmp = (line64_a0[0] * line64_a1[1] - line64_a0[1] * line64_a1[0]) * (line64_b0[0] - line64_b1[0]) - 
-				(line64_b0[0] * line64_b1[1] - line64_b0[1] * line64_b1[0])	* (line64_a0[0] - line64_a1[0]);
+	tmp = (line_a0[0] * line_a1[1] - line_a0[1] * line_a1[0]) * (line_b0[0] - line_b1[0]) - 
+				(line_b0[0] * line_b1[1] - line_b0[1] * line_b1[0]) 	* (line_a0[0] - line_a1[0]);
 	tmp /= i;
+/*	tmp = ((line_a0[0] * line_a1[1] - line_a0[1] * line_a1[0]) / i) * (line_b0[0] - line_b1[0]) - 
+		((line_b0[0] * line_b1[1] - line_b0[1] * line_b1[0]) / i) * (line_a0[0] - line_a1[0]);
+//	tmp /= i;*/
 	output[0] = tmp;
-	i = (line64_a0[0] - line64_a1[0]) * (line64_b0[1] - line64_b1[1]) - (line64_a0[1] - line64_a1[1]) * (line64_b0[0] - line64_b1[0]);
+	i = (line_a0[0] - line_a1[0]) * (line_b0[1] - line_b1[1]) - (line_a0[1] - line_a1[1]) * (line_b0[0] - line_b1[0]);
 	if(i == 0)
 	{
 		output[0] = (line_a0[0] + line_a1[0]) / 2;
 		output[1] = (line_a0[1] + line_a1[1]) / 2;
 		return;
 	}
-	tmp = (line64_a0[0] * line64_a1[1] - line64_a0[1] * line64_a1[0])	* (line64_b0[1] - line64_b1[1]) - 
-				(line64_b0[0] * line64_b1[1] - line64_b0[1] * line64_b1[0])	* (line64_a0[1] - line64_a1[1]);
+	tmp = (line_a0[0] * line_a1[1] - line_a0[1] * line_a1[0])	* (line_b0[1] - line_b1[1]) - 
+				(line_b0[0] * line_b1[1] - line_b0[1] * line_b1[0])	* (line_a0[1] - line_a1[1]);
 	tmp /= i;
 	output[1] = tmp;
 }
 
+int64 f_intersect_test2di64(int64 *line_a0, int64 *line_a1, int64 *line_b0, int64 *line_b1)
+{
+	double vec[2];
+	vec[0] = line_a0[0] - line_a1[0];
+	vec[1] = line_a0[1] - line_a1[1];
+	if((vec[1] * (line_b0[0] - line_a1[0]) - vec[0] * (line_b0[1] - line_a1[1]) > 0) == 
+		(vec[1] * (line_b1[0] - line_a1[0]) - vec[0] * (line_b1[1] - line_a1[1]) > 0))
+		return 0;
+	vec[0] = line_b0[0] - line_b1[0];
+	vec[1] = line_b0[1] - line_b1[1];
+	if((vec[1] * (line_a0[0] - line_b1[0]) - vec[0] * (line_a0[1] - line_b1[1]) > 0) == 
+		(vec[1] * (line_a1[0] - line_b1[0]) - vec[0] * (line_a1[1] - line_b1[1]) > 0))
+		return 0;
+	return 1;
+}
 
 void f_intersect2di_working_questionmark(int *output, int *line_a0, int *line_a1, int *line_b0, int *line_b1)
 {
@@ -944,6 +966,53 @@ void f_intersect2di_working_questionmark(int *output, int *line_a0, int *line_a1
 				(line_b0[0] * line_b1[1] - line_b0[1] * line_b1[0])	* (line_a0[1] - line_a1[1]);
 	output[1] /= i;
 }
+
+
+
+unsigned char f_three_points_to_circlef(float *out_center, float *radius_output, float a[2], float b[2], float c[2])
+{
+	float ba[2], cb[2], ac[2], tmp[2], de;
+	ba[0] = b[0] - a[0];
+	ba[1] = b[1] - a[1];
+	cb[0] = c[0] - b[0];
+	cb[1] = c[1] - b[1];
+	ac[0] = a[0] - c[0];
+	ac[1] = a[1] - c[1];
+    de = ba[0] * cb[1] - ba[1] * cb[0];
+	if(de == 0)
+		return 0;
+	de = 0.5 * (ac[0] * cb[0] + ac[1] * cb[1]) / de;
+	out_center[0] = (a[0] + b[0] + ba[1]) * de;
+	out_center[1] = (a[1] + b[1] + -ba[0]) * de;
+	
+	tmp[0] = a[0] - out_center[0];
+	tmp[1] = a[1] - out_center[1];
+	*radius_output = sqrtf(tmp[0] * tmp[0] + tmp[1] * tmp[1]);
+    return 1;
+}
+
+unsigned char f_three_points_to_circled(double *out_center, double *radius_output, double a[2], double b[2], double c[2])
+{
+	double ba[2], cb[2], ac[2], tmp[2], de;
+	ba[0] = b[0] - a[0];
+	ba[1] = b[1] - a[1];
+	cb[0] = c[0] - b[0];
+	cb[1] = c[1] - b[1];
+	ac[0] = a[0] - c[0];
+	ac[1] = a[1] - c[1];
+    de = ba[0] * cb[1] - ba[1] * cb[0];
+	if(de == 0)
+		return 0;
+	de = 0.5 * (ac[0] * cb[0] + ac[1] * cb[1]) / de;
+	out_center[0] = (a[0] + b[0] + ba[1]) * de;
+	out_center[1] = (a[1] + b[1] + -ba[0]) * de;
+	
+	tmp[0] = a[0] - out_center[0];
+	tmp[1] = a[1] - out_center[1];
+	*radius_output = sqrt(tmp[0] * tmp[0] + tmp[1] * tmp[1]);
+    return 1;
+}
+
 /*
 void f_intersect2di(int *output, int *line_a0, int *line_a1, int *line_b0, int *line_b1)
 {
@@ -975,7 +1044,7 @@ void f_intersect2di(int *output, int *line_a0, int *line_a1, int *line_b0, int *
 
 
 
-short f_float32_to_float16(float value)
+unsigned short f_float32_to_float16(float value)
 {
 	union{int integer; float real;}convert;
 	int sign, exponent, sig, t, a, b;
@@ -1020,7 +1089,7 @@ short f_float32_to_float16(float value)
     }
 }
 
-float f_float16_to_float32(short value)
+float f_float16_to_float32(unsigned short value)
 {
 	union{int integer; float real;}convert;
 	int sign, exponent, sig;

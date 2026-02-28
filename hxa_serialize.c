@@ -44,7 +44,9 @@ void hxa_serialize_free_meta(HXAMeta *meta)
 		case HXA_MDT_META :
 			for(i = 0; i < meta->array_length; i++)
 				hxa_serialize_free_meta(&(((HXAMeta *)meta->value.array_of_meta)[i]));
-			free(meta->value.array_of_meta);
+			if(meta->value.array_of_meta != NULL)
+				free(meta->value.array_of_meta);
+
 		break;
 	}
 }
@@ -80,8 +82,6 @@ void hxa_serialize_free_file(HXAFile *file)
 	free(file);
 }
 
-
-
 int hxa_unserialize_meta(hxa_uint8 *buffer, size_t *pos, size_t size, HXAMeta **meta, hxa_uint32 *count, int silent)
 {
 	HXAMeta *m;
@@ -90,6 +90,11 @@ int hxa_unserialize_meta(hxa_uint8 *buffer, size_t *pos, size_t size, HXAMeta **
 	size_t p, length;
 	p = *pos;
 	c = *count;
+	if(c == 0)
+	{	
+		*meta = NULL;
+		return TRUE;
+	}
 	*count = 0;
 	m = malloc((sizeof *m) * c);
 	*meta = m;
@@ -151,7 +156,7 @@ int hxa_unserialize_meta(hxa_uint8 *buffer, size_t *pos, size_t size, HXAMeta **
 
 int hxa_unserialize_layer_stack(hxa_uint8 *buffer, size_t *pos, size_t size, HXALayerStack *stack, size_t length, int silent)
 {
-	const type_sizes[] = {sizeof(hxa_uint8), sizeof(hxa_uint32), sizeof(float), sizeof(double)};
+	const size_t type_sizes[] = {sizeof(hxa_uint8), sizeof(hxa_uint32), sizeof(float), sizeof(double)};
 	hxa_uint32 stack_count, i;	
 	size_t s, p, text_length;
 	p = *pos;
@@ -159,6 +164,12 @@ int hxa_unserialize_layer_stack(hxa_uint8 *buffer, size_t *pos, size_t size, HXA
 	p += sizeof(hxa_uint32);
 
 	stack->layer_count = 0;
+	if(stack_count == 0)
+	{
+		*pos = p;
+		stack->layers = NULL;
+		return TRUE;
+	}
 	stack->layers = malloc((sizeof *stack->layers) * stack_count);
 	for(i = 0; i < stack_count; i++)
 	{
@@ -193,6 +204,16 @@ int hxa_unserialize_layer_stack(hxa_uint8 *buffer, size_t *pos, size_t size, HXA
 	return TRUE;
 }
 
+HXAFile *hxa_unserialize_create_file(hxa_uint32 version)
+{
+	HXAFile *file;
+	file = malloc(sizeof *file);
+	file->version = version;
+	file->node_count = 0;
+	file->node_array = NULL;
+	return file;
+ }
+
 HXAFile *hxa_unserialize(hxa_uint8 *buffer, size_t size, int silent)
 {
 	HXAFile *file;
@@ -210,10 +231,7 @@ HXAFile *hxa_unserialize(hxa_uint8 *buffer, size_t size, int silent)
 		return NULL;
 	}
 	memcpy(&version, &buffer[4], sizeof(hxa_uint32));
-	file = malloc(sizeof *file);
-	file->version = version;
-	file->node_count = 0;
-	file->node_array = NULL;
+	file = hxa_unserialize_create_file(version);
 	memcpy(&node_count, &buffer[8], sizeof(hxa_uint32));
 	pos = sizeof(hxa_uint32) * 3;
 	file->node_array = node = malloc((sizeof *file->node_array) * node_count); 
@@ -274,10 +292,10 @@ HXAFile *hxa_unserialize(hxa_uint8 *buffer, size_t size, int silent)
 					hxa_serialize_free_file(file);
 					return NULL;
 				}
-
+			
 				memcpy(&node[i].content.geometry.edge_corner_count, &buffer[pos], sizeof(hxa_uint32));
 				pos += sizeof(hxa_uint32);
-
+				
 				if(!hxa_unserialize_layer_stack(buffer, &pos, size, &node[i].content.geometry.corner_stack, node[i].content.geometry.edge_corner_count, silent))
 				{
 					hxa_serialize_free_file(file);
@@ -372,7 +390,7 @@ hxa_uint8 *hxa_serialize_meta(hxa_uint8 *b, HXAMeta *meta, hxa_uint32 count)
 
 size_t hxa_serialize_layer_stack_size(HXALayerStack *stack, size_t length)
 {
-	const type_sizes[] = {sizeof(hxa_uint8), sizeof(hxa_uint32), sizeof(float), sizeof(double)};
+	const size_t type_sizes[] = {sizeof(hxa_uint8), sizeof(hxa_uint32), sizeof(float), sizeof(double)};
 	unsigned int i, j;
 	hxa_uint8 name_lenght;
 	size_t size;
@@ -392,7 +410,7 @@ size_t hxa_serialize_layer_stack_size(HXALayerStack *stack, size_t length)
 
 hxa_uint8 *hxa_serialize_layer_stack(hxa_uint8 *b, HXALayerStack *stack, unsigned int length)
 {
-	const type_sizes[] = {sizeof(hxa_uint8), sizeof(hxa_uint32), sizeof(float), sizeof(double)};
+	const size_t type_sizes[] = {sizeof(hxa_uint8), sizeof(hxa_uint32), sizeof(float), sizeof(double)};
 	unsigned int i, j;
 	hxa_uint8 name_lenght, *test;
 	test = b;
@@ -400,7 +418,6 @@ hxa_uint8 *hxa_serialize_layer_stack(hxa_uint8 *b, HXALayerStack *stack, unsigne
 	b += sizeof(hxa_uint32);
 	for(i = 0; i < stack->layer_count; i++)
 	{
-		printf(" %u ", (unsigned int)(b - test));
 		for(j = 0; j < 255 && stack->layers[i].name[j] != 0; j++);
 		name_lenght = j;
 		*b++ = name_lenght;
@@ -408,12 +425,9 @@ hxa_uint8 *hxa_serialize_layer_stack(hxa_uint8 *b, HXALayerStack *stack, unsigne
 		b += name_lenght;
 		*b++ = stack->layers[i].components;
 		*b++ = stack->layers[i].type;
-		printf(" %u ", (unsigned int)(b - test));
 		memcpy(b, stack->layers[i].data.double_data, stack->layers[i].components * length * type_sizes[stack->layers[i].type]);
 		b += stack->layers[i].components * length * type_sizes[stack->layers[i].type];
 	}
-
-	printf(" post: stack size %u - %u\n", (unsigned int)(b - test), length);
 	return b;
 }
 
@@ -435,6 +449,7 @@ void hxa_serialize(hxa_uint8 *buffer, HXAFile *data)
 		memcpy(b, &node->meta_data_count, sizeof(hxa_uint32));
 		b += sizeof(hxa_uint32);
 		b = hxa_serialize_meta(b, node->meta_data, node->meta_data_count);
+
 		switch(node->type)
 		{
 			case HXA_NT_GEOMETRY :
@@ -455,7 +470,7 @@ void hxa_serialize(hxa_uint8 *buffer, HXAFile *data)
 				if(node->content.image.type == HXA_IT_CUBE_IMAGE)
 					dimentions = 2;
 				memcpy(b, &node->content.image.resolution, dimentions * sizeof(hxa_uint32));
-				b += sizeof(hxa_uint32);
+				b += dimentions * sizeof(hxa_uint32);
 				size = node->content.image.resolution[0] * node->content.image.resolution[1] * node->content.image.resolution[2];	
 				if(node->content.image.type == HXA_IT_CUBE_IMAGE)
 					size *= 6;
@@ -477,7 +492,7 @@ size_t hxa_serialize_meta_size(HXAMeta *meta, hxa_uint32 count)
 	{
 		for(j = 0; j < 255 && meta[i].name[j] != 0; j++);
 		name_lenght = j;
-		size = name_lenght + 1 + 1 + sizeof(hxa_uint32);
+		size += name_lenght + 1 + 1 + sizeof(hxa_uint32);
 		switch(meta[i].type)
 		{	
 			case HXA_MDT_INT64 :
@@ -496,7 +511,7 @@ size_t hxa_serialize_meta_size(HXAMeta *meta, hxa_uint32 count)
 			size += sizeof(char) * meta[i].array_length;
 			break;
 			case HXA_MDT_META :	
-			size = hxa_serialize_meta_size(meta[i].value.array_of_meta, meta[i].array_length);
+			size += hxa_serialize_meta_size(meta[i].value.array_of_meta, meta[i].array_length);
 			break;	
 		}
 	}
@@ -542,4 +557,24 @@ size_t hxa_serialize_size(HXAFile *data)
 		node++;
 	}
 	return s;
+}
+
+
+int hxa_serialize_save(char *file_name, HXAFile *data)
+{
+	FILE *f;
+	uint8 *buffer;
+	size_t size, saved;
+	size = hxa_serialize_size(data);
+	buffer = malloc(size);
+	if(buffer == NULL)
+		return FALSE;
+	f = fopen(file_name, "wb");
+	if(f == NULL)
+		return FALSE;
+	hxa_serialize(buffer, data);
+	saved = fwrite(buffer, 1, size, f);
+	free(buffer);
+	fclose(f);
+	return saved == size;
 }

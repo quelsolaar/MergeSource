@@ -1,8 +1,10 @@
 #include <stdlib.h>
+#include <string.h>
 #include "hxa.h"
 #include "hxa_utils.h"
 
 #define NULL (void *)0
+extern short hxa_float32_to_float16(float value);
 
 unsigned int hxa_util_array_export_type_sizes[HXA_UAET_COUNT] = {sizeof(char), sizeof(unsigned char), sizeof(short), sizeof(unsigned short), sizeof(int), sizeof(unsigned int), sizeof(short), sizeof(float), sizeof(double)};
 void hxa_type_convert_vertex_uint8_to_int8(unsigned char *write, unsigned char *read, unsigned int write_stride, unsigned int read_stride, unsigned int component_count, unsigned int vertex_length)

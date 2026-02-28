@@ -19,12 +19,12 @@ uint *f_path_find(uint *output_count, uint cell_count, uint naighbour_max_count,
 	FPathNode *open_list, current, c;
 	uint i, j, k, length = 1, list_count, list_alloc, *list, block, *output = NULL;
 	float *cost, *dist, f;
-	
-	list = malloc((sizeof *list) * naighbour_max_count);
-	cost = malloc((sizeof *cost) * naighbour_max_count);
-	dist = malloc((sizeof *dist) * naighbour_max_count);
 
-	cells = malloc((sizeof *cells) * cell_count);
+	list = malloc((sizeof *list) * naighbour_max_count + (sizeof *cost) * naighbour_max_count + (sizeof *dist) * naighbour_max_count + (sizeof *cells) * cell_count);
+	cost = &list[naighbour_max_count];
+	dist = &cost[naighbour_max_count];
+	cells = &dist[naighbour_max_count];
+	
 	for(i = 0; i < cell_count; i++)
 		cells[i].parent = -1;
 
@@ -47,6 +47,7 @@ uint *f_path_find(uint *output_count, uint cell_count, uint naighbour_max_count,
 			open_list = realloc(open_list, (sizeof * open_list) * list_alloc);
 		} 
 		for(i = 0; i < length; i++)
+
 		{
 			block = list[i];
 			if(cells[block].parent == -1)
@@ -54,9 +55,6 @@ uint *f_path_find(uint *output_count, uint cell_count, uint naighbour_max_count,
 				if(--max_cells == 0)
 				{
 					free(list);
-					free(cost);
-					free(dist);
-					free(cells);
 					free(open_list);
 					return output;
 				}
@@ -154,9 +152,6 @@ uint *f_path_find(uint *output_count, uint cell_count, uint naighbour_max_count,
 		output_count = 0;
 	}
 	free(list);
-	free(cost);
-	free(dist);
-	free(cells);
 	free(open_list);
 	return output;
 }

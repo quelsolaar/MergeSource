@@ -18,8 +18,8 @@ extern void *betray_plugin_windows_window_handle_get(void);
 extern void *betray_plugin_windows_device_context_handle_get(void);
 extern void betray_key_codes_init(void);
 extern boolean betray_activate_context(void *context);
-extern void *b_create_context();
-extern void	betray_device_init();
+extern void *b_create_context(void);
+extern void	betray_device_init(void);
 #ifdef _WIN32
 #pragma comment(lib, "OpenGL32.lib")
 extern void APIENTRY betray_glBindFramebufferEXT(GLenum target, GLuint framebuffer);
@@ -46,6 +46,14 @@ typedef struct{
 }BEventCallback;
 
 #endif
+/*
+typedef enum{
+	NOT_YET
+}BAudioMessageType;
+
+typedef struct{
+	BAudioMessageType type;
+}BAudioMessage;*/
 
 typedef struct{
 	uint (*sound_create)(uint type, uint stride, uint length, uint frequency, void *data, char *name);
@@ -163,6 +171,7 @@ struct{
 	BDevice			*devices;
 	uint			device_allocated;
 	uint			device_count;
+	uint			image_warp_setting;
 	BButtonEvent    held_buttons[B_MAX_EVENT_COUNT];
 	uint			held_button_count;
 }BGlobal;
@@ -172,7 +181,7 @@ float BGlobal_occular_distance = 0.05;
 
 extern void betray_desktop_size_get(uint *size_x, uint *size_y);
 extern boolean b_win32_screen_mode(uint size_x, uint size_y);
-extern void b_win32_window_close();
+extern void b_win32_window_close(void);
 
 extern boolean b_init_display_opengl(uint size_x, uint size_y, boolean full_screen, uint samples, char *caption, boolean *sterioscopic);
 extern boolean b_win32_init_display_opengles2(uint size_x, uint size_y, boolean full_screen, uint samples, char *caption, boolean *sterioscopic);
@@ -225,7 +234,7 @@ uint (APIENTRY *betray_glGetDebugMessageLog)(GLuint count, GLsizei bufSize, GLen
 uint (*betray_glGetDebugMessageLog)(GLuint count, GLsizei bufSize, GLenum *sources, GLenum *types, GLuint *ids, GLenum *severities, GLsizei *lengths, char *messageLog);
 #endif
 
-void b_debug_message() 
+void b_debug_message(void) 
 {
 	char message_log[2049];
 	uint types, severities, sources, ids;
@@ -288,7 +297,7 @@ void b_debug_message()
 				printf("POP GROUP: ");
 			break;
 		}
-		printf(message_log);
+		printf("%s", message_log);
 		switch(sources)
 		{
 			case GL_DEBUG_SEVERITY_LOW :
@@ -610,9 +619,11 @@ void betray_button_get_up_down(uint user_id, boolean *press, boolean *last_press
     }
 }
 
+
+
 #define BETRAY_AUDIO_UNIT_MAGIC_NUMBER 11382600
 
-uint betray_plugin_audio_unit_create()
+uint betray_plugin_audio_unit_create(void)
 {
 	if(BGlobal.plugins.audio_count % 16 == 0)
 	{
@@ -726,6 +737,8 @@ void betray_audio_sound_destroy(uint sound)
 uint betray_audio_sound_play(uint sound, float *pos, float *vector, float speed, float volume, boolean loop, boolean ambient, boolean auto_delete)
 {
 	uint i, id;
+	if(speed != speed || volume != volume)
+		i = 0;
 	if(auto_delete)
 	{
 		for(i = 0; i < BGlobal.plugins.audio_count; i++)
@@ -752,6 +765,8 @@ uint betray_audio_sound_play(uint sound, float *pos, float *vector, float speed,
 void betray_audio_sound_set(uint play, float *pos, float *vector, float speed, float volume, boolean loop, boolean ambient)
 {
 	uint i;
+	if(speed != speed || volume != volume)
+		i = 0;
 	for(i = 0; i < BGlobal.plugins.audio_count; i++)
 		if(BGlobal.plugins.audio[i].sound_set != NULL)
 			BGlobal.plugins.audio[i].sound_set(BGlobal.sounds.source_ids[play * (BGlobal.plugins.audio_count + 1) + i], pos, vector, speed, volume, loop, ambient);
@@ -820,6 +835,8 @@ void betray_plugin_callback_set_audio_stream_set(uint audio_unit_id, void (*func
 uint betray_audio_stream_create(uint frequency, float *pos, float *vector,  float volume, boolean ambient)
 {
 	uint i, id;
+	if(volume != volume)
+		i = 0;
 	for(id = 0; id < BGlobal.sounds.stream_count; id++)
 		if(BGlobal.sounds.stream_ids[id * (BGlobal.plugins.audio_count + 1) + BGlobal.plugins.audio_count] == FALSE)
 			break;
@@ -866,7 +883,7 @@ uint betray_audio_stream_buffer_left(uint stream)
 	uint i, size, left = -1;
 	for(i = 0; i < BGlobal.plugins.audio_count; i++)
 	{
-		if(BGlobal.plugins.audio[i].stream_buffer_left!= NULL)
+		if(BGlobal.plugins.audio[i].stream_buffer_left != NULL)
 		{
 			size = BGlobal.plugins.audio[i].stream_buffer_left(BGlobal.sounds.stream_ids[stream * (BGlobal.plugins.audio_count + 1) + i]);
 			if(size < left)
@@ -886,7 +903,16 @@ void betray_audio_stream_set(uint stream, float *pos, float *vector,  float volu
 
 void betray_audio_listener(float *pos, float *vector, float *forward, float *side, float scale, float speed_of_sound)
 {
+	float defalut_value[5] = {1, 0, 0, 0, 1};
 	uint i;
+	if(pos == NULL)
+		pos = &defalut_value[1];
+	if(vector == NULL)
+		vector = &defalut_value[1];
+	if(forward == NULL)
+		forward = &defalut_value[2];
+	if(side == NULL)
+		side = defalut_value;
 	for(i = 0; i < BGlobal.plugins.audio_count; i++)
 		BGlobal.plugins.audio[i].listener(pos, vector, forward, side, scale, speed_of_sound);
 }
@@ -916,7 +942,7 @@ void betray_plugin_callback_set_audio_read(uint audio_unit_id, uint (*func)(void
 	}
 }
 
-uint betray_audio_read_units()
+uint betray_audio_read_units(void)
 {
 	uint i, count = 0;
 	for(i = 0; i < BGlobal.plugins.audio_count; i++)
@@ -953,10 +979,6 @@ void betray_audio_read_channel_direction(uint unit_id, float *vec)
 
 uint betray_audio_read(uint unit_id, void *data, uint type, uint buffer_size)
 {
-	int8 *data8 = NULL;
-	int16 *data16 = NULL;
-	int32 *data32 = NULL;
-	real32 *dataf32 = NULL;
 	uint i, count = 0;
 	for(i = 0; i < BGlobal.plugins.audio_count && count != unit_id; i++)
 		if(BGlobal.plugins.audio[i].channels != 0)
@@ -1141,7 +1163,7 @@ void betray_plugin_pointer_free(uint id)
 }
 
 
-void betray_plugin_pointer_clean()
+void betray_plugin_pointer_clean(void)
 {
 	uint i;
 	for(i = BGlobal.input.pointer_count; i != 0 && (BGlobal.input.pointers[i - 1].name[0] == 0 && !BGlobal.input.pointers[i - 1].last_button[0] && !BGlobal.input.pointers[i - 1].button[0]); i--);
@@ -1154,7 +1176,10 @@ uint betray_plugin_input_device_allocate(uint user_id, char *name)
 	if(BGlobal.device_allocated == BGlobal.device_count)
 	{
 		BGlobal.device_allocated += 16;
-		BGlobal.devices = realloc(BGlobal.devices, (sizeof *BGlobal.devices) * BGlobal.device_allocated);
+		if(BGlobal.devices == NULL)
+			BGlobal.devices = malloc((sizeof *BGlobal.devices) * BGlobal.device_allocated);
+		else
+			BGlobal.devices = realloc(BGlobal.devices, (sizeof *BGlobal.devices) * BGlobal.device_allocated);
 	}
 	BGlobal.devices[BGlobal.device_count].id = 0;
 	for(i = 0; i <BGlobal.device_count; i++)
@@ -1209,9 +1234,12 @@ void betray_plugin_axis_set(uint id, float axis_x, float axis_y, float axis_z)
 {
 	if(id < BGlobal.input.axis_count)
 	{
-		BGlobal.input.axis[id].axis[0] = axis_x;
-		BGlobal.input.axis[id].axis[1] = axis_y;
-		BGlobal.input.axis[id].axis[2] = axis_z;
+		if(axis_x == axis_x && axis_y == axis_y && axis_z == axis_z)
+		{
+			BGlobal.input.axis[id].axis[0] = axis_x;
+			BGlobal.input.axis[id].axis[1] = axis_y;
+			BGlobal.input.axis[id].axis[2] = axis_z;
+		}
 	}
 }
 
@@ -1261,7 +1289,7 @@ uint betray_settings_create(uint type, char *name, uint select_count, char **sel
 	return BGlobal.setting_count - 1;
 }
 
-uint betray_settings_count()
+uint betray_settings_count(void)
 {
 	return BGlobal.setting_count;
 }
@@ -1421,15 +1449,15 @@ extern int errno;
 
 void betray_init(BContextType context_type, int argc, char **argv, uint window_size_x, uint window_size_y, uint samples, boolean window_fullscreen, char *name)
 {
-	char path[1024];
+	char path[IMAGINE_PATH_LENGTH_MAX], *plugin_path = "./Betray_plugins/";
 	uint i, j, display_mode_x, display_mode_y;
 	IInterface *exe_interface;
-//#ifndef _CONSOLE
+#ifndef _CONSOLE
 	freopen("betray_stdout.txt", "w", stdout);
 	setbuf(stdout, NULL);
 	freopen("betray_stderr.txt", "w", stderr);
 	setbuf(stderr, NULL);
-//#endif
+#endif
 //	betray_context_type = context_type;
 
 	BGlobal.context_func = NULL;
@@ -1528,7 +1556,7 @@ void betray_init(BContextType context_type, int argc, char **argv, uint window_s
 
 	#endif
 
-#ifdef __ANDROID__ FIX ME
+#ifdef __ANDROID__ // FIX ME
 //	b_android_init_display(&window_size_x, &window_size_y, name);
 //	window_fullscreen = TRUE;
 #endif
@@ -1688,37 +1716,54 @@ void betray_init(BContextType context_type, int argc, char **argv, uint window_s
 	BGlobal.settings[BGlobal.setting_count++].name[i] = 0;
 	return BGlobal.setting_count - 1;
 }*/
-	betray_settings_create(BETRAY_ST_TOGGLE, "Post Plugin", 0, NULL);
+//	
 	
-	for(i = 0; imagine_path_search("." /*the lack of comma is intentional*/ IMAGINE_LIBRARY_EXTENTION, TRUE, IMAGINE_DIR_HOME_PATH, FALSE, i, path, 1024); i++)
+	for(i = 0; imagine_path_search("." /*the lack of comma is intentional*/ IMAGINE_LIBRARY_EXTENTION, TRUE, IMAGINE_DIR_HOME_PATH, FALSE, i, path, IMAGINE_PATH_LENGTH_MAX); i++)
 	{
 		printf("Loading: %s ", path);
 		if(NULL == imagine_library_load(path, exe_interface, "Betray"))
 			printf("%s failed.\n", path);
 		else
 			printf("%s succeded.\n", path);
+	}	
+	
+	for(j = 0; j < IMAGINE_PATH_LENGTH_MAX - 1 && plugin_path[j] != '\0'; j++)
+	{
+		if(plugin_path[j] == '/')
+			path[j] = IMAGINE_DIR_SLASH;
+		else
+			path[j] = plugin_path[j];
+	}
+	path[j] = '\0';
+
+	for(i = 0; imagine_path_search("." /*the lack of comma is intentional*/ IMAGINE_LIBRARY_EXTENTION, TRUE, path, FALSE, i, &path[j], IMAGINE_PATH_LENGTH_MAX - j); i++)
+	{
+		printf("Loading: %s ", path);
+		if(NULL == imagine_library_load(path, exe_interface, "Betray"))
+			printf("%s failed.\n", path);
+		else
+			printf("%s succeded.\n", path);
+		path[j] = '\0';
 	}
 	
  	betray_activate_context(NULL);
 	if(BGlobal.plugins.image_warp_count != 0)
 	{
 		char **names;
-		BGlobal.settings[0].type = BETRAY_ST_SELECT;
-		BGlobal.settings[0].data.select.options = (char **)malloc((sizeof *names) * (BGlobal.plugins.image_warp_count + 1));
+		BGlobal.image_warp_setting = betray_settings_create(BETRAY_ST_TOGGLE, "Post Plugin", 0, NULL);
+
+		BGlobal.settings[BGlobal.image_warp_setting].type = BETRAY_ST_SELECT;
+		BGlobal.settings[BGlobal.image_warp_setting].data.select.options = (char **)malloc((sizeof *names) * (BGlobal.plugins.image_warp_count + 1));
 		for(i = 0; i < BGlobal.plugins.image_warp_count; i++)
-			BGlobal.settings[0].data.select.options[i] = BGlobal.plugins.image_warp[i].name;
-		BGlobal.settings[0].data.select.options[i] = "None";
-		BGlobal.settings[0].data.select.select_count = BGlobal.plugins.image_warp_count + 1;
-		BGlobal.settings[0].data.select.selected = BGlobal.plugins.image_warp_count;
+			BGlobal.settings[BGlobal.image_warp_setting].data.select.options[i] = BGlobal.plugins.image_warp[i].name;
+		BGlobal.settings[BGlobal.image_warp_setting].data.select.options[i] = "None";
+		BGlobal.settings[BGlobal.image_warp_setting].data.select.select_count = BGlobal.plugins.image_warp_count + 1;
+		BGlobal.settings[BGlobal.image_warp_setting].data.select.selected = BGlobal.plugins.image_warp_count;
 	}else
-	{
-		for(i = 0; i < BGlobal.setting_count - 1; i++)
-			BGlobal.settings[i] = BGlobal.settings[i + 1];
-		BGlobal.setting_count--;
-	}
+		BGlobal.image_warp_setting = ~0;
 	betray_safe_area_setting[0] = betray_settings_create(BETRAY_ST_SLIDER, "Horizontal safe area", 0, NULL);
 	BGlobal.settings[betray_safe_area_setting[0]].data.slider = 1.0;
-	betray_safe_area_setting[1] = betray_settings_create(BETRAY_ST_SLIDER, "Vertuical safe area", 0, NULL);
+	betray_safe_area_setting[1] = betray_settings_create(BETRAY_ST_SLIDER, "Vertical safe area", 0, NULL);
 	BGlobal.settings[betray_safe_area_setting[1]].data.slider = 1.0;
 	betray_draw_state_reset();
 /*	{k
@@ -1735,7 +1780,7 @@ void betray_init(BContextType context_type, int argc, char **argv, uint window_s
 	}*/
 }
 
-BContextType betray_context_type_get()
+BContextType betray_context_type_get(void)
 {
 	return betray_context_type;
 }
@@ -1765,11 +1810,11 @@ void betray_action(BActionMode mode)
 		uint i;
 		i = BGlobal.plugins.image_warp_count;
 		BGlobal.input.draw_id = 0;
-		if(BGlobal.plugins.image_warp_count != 0 && BGlobal.settings[0].data.select.selected < BGlobal.plugins.image_warp_count)
+		if(BGlobal.plugins.image_warp_count != 0 && BGlobal.settings[BGlobal.image_warp_setting].data.select.selected < BGlobal.plugins.image_warp_count)
 		{
-			BGlobal.draw_state.context = BGlobal.plugins.image_warp[BGlobal.settings[0].data.select.selected].context;
-			betray_activate_context(BGlobal.plugins.image_warp[BGlobal.settings[0].data.select.selected].context);
-			if(BGlobal.plugins.image_warp[BGlobal.settings[0].data.select.selected].func(&BGlobal.input))
+			BGlobal.draw_state.context = BGlobal.plugins.image_warp[BGlobal.settings[BGlobal.image_warp_setting].data.select.selected].context;
+			betray_activate_context(BGlobal.plugins.image_warp[BGlobal.settings[BGlobal.image_warp_setting].data.select.selected].context);
+			if(BGlobal.plugins.image_warp[BGlobal.settings[BGlobal.image_warp_setting].data.select.selected].func(&BGlobal.input))
 				BGlobal.input.draw_id++;
 			glFinish();
 		}

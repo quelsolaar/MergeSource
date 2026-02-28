@@ -121,7 +121,7 @@ void enough_to_hxa_node_geometry(ENode *e_node, HXANode *hxa_node)
 	hxa_node->content.geometry.edge_stack.layer_count = 0;
 	hxa_node->content.geometry.edge_stack.layers = NULL;
 	hxa_node->content.geometry.face_stack.layer_count = 0;
-	f_debug_memory();
+	f_debug_mem_check_bounds();
 	for(layer = e_nsg_get_layer_next(e_node, 0); layer != NULL; layer = e_nsg_get_layer_next(e_node, e_nsg_get_layer_id(layer) + 1))
 	{
 		switch(e_nsg_get_layer_type(layer))
@@ -160,7 +160,7 @@ void enough_to_hxa_node_geometry(ENode *e_node, HXANode *hxa_node)
 		hxa_node->content.geometry.face_stack.layers = malloc((sizeof *hxa_node->content.geometry.face_stack.layers) * hxa_node->content.geometry.face_stack.layer_count);
 	else		
 		hxa_node->content.geometry.face_stack.layers = NULL;
-	f_debug_memory();
+	f_debug_mem_check_bounds();
 	hxa_node->content.geometry.vertex_stack.layer_count = 0;
 	hxa_node->content.geometry.corner_stack.layer_count = 0;
 	hxa_node->content.geometry.face_stack.layer_count = 0;
@@ -211,14 +211,14 @@ void enough_to_hxa_node_geometry(ENode *e_node, HXANode *hxa_node)
 				sprintf(hxa_node->content.geometry.face_stack.layers[hxa_node->content.geometry.face_stack.layer_count].name, e_nsg_get_layer_name(layer));
 				hxa_node->content.geometry.face_stack.layers[hxa_node->content.geometry.face_stack.layer_count].components = 1;
 				hxa_node->content.geometry.face_stack.layers[hxa_node->content.geometry.face_stack.layer_count].type = HXA_LDT_UINT8;
-				hxa_node->content.geometry.face_stack.layers[hxa_node->content.geometry.face_stack.layer_count].data.double_data = malloc(sizeof(double) * polygon_length);
+				hxa_node->content.geometry.face_stack.layers[hxa_node->content.geometry.face_stack.layer_count].data.uint8_data = malloc(sizeof(uint8) * polygon_length);
 				hxa_node->content.geometry.face_stack.layer_count++;
 			break;
 			case VN_G_LAYER_POLYGON_FACE_UINT32 :
 				sprintf(hxa_node->content.geometry.face_stack.layers[hxa_node->content.geometry.face_stack.layer_count].name, e_nsg_get_layer_name(layer));
 				hxa_node->content.geometry.face_stack.layers[hxa_node->content.geometry.face_stack.layer_count].components = 1;
 				hxa_node->content.geometry.face_stack.layers[hxa_node->content.geometry.face_stack.layer_count].type = HXA_LDT_INT32;
-				hxa_node->content.geometry.face_stack.layers[hxa_node->content.geometry.face_stack.layer_count].data.double_data = malloc(sizeof(double) * polygon_length);
+				hxa_node->content.geometry.face_stack.layers[hxa_node->content.geometry.face_stack.layer_count].data.int32_data = malloc(sizeof(int32) * polygon_length);
 				hxa_node->content.geometry.face_stack.layer_count++;
 			break;
 			case VN_G_LAYER_POLYGON_FACE_REAL :
@@ -235,7 +235,7 @@ void enough_to_hxa_node_geometry(ENode *e_node, HXANode *hxa_node)
 	ref_layer = e_nsg_get_layer_by_id(e_node, 1);
 	ref = e_nsg_get_layer_data(e_node, ref_layer);
 	hxa_node->content.geometry.face_count = 0;
-	f_debug_memory();
+	f_debug_mem_check_bounds();
 	for(i = edge_count = 0; i < polygon_length; i++)
 	{
 		if(ref[i * 4 + 0] < vertex_length && vertex[ref[i * 4 + 0] * 3] != V_REAL64_MAX &&
@@ -279,15 +279,15 @@ void enough_to_hxa_node_geometry(ENode *e_node, HXANode *hxa_node)
 						edge_layers++;
 					break;
 					case VN_G_LAYER_POLYGON_FACE_UINT8 :
-						hxa_node->content.geometry.face_stack.layers[face_layers].data.uint8_data[edge_count] = ((uint8 *)data)[i];
+						hxa_node->content.geometry.face_stack.layers[face_layers].data.uint8_data[hxa_node->content.geometry.face_count] = ((uint8 *)data)[i];
 						face_layers++;
 					break;
 					case VN_G_LAYER_POLYGON_FACE_UINT32 :
-						hxa_node->content.geometry.face_stack.layers[face_layers].data.int32_data[edge_count] = ((uint32 *)data)[i];
+						hxa_node->content.geometry.face_stack.layers[face_layers].data.int32_data[hxa_node->content.geometry.face_count] = ((uint32 *)data)[i];
 						face_layers++;
 					break;
 					case VN_G_LAYER_POLYGON_FACE_REAL :
-						hxa_node->content.geometry.face_stack.layers[face_layers].data.double_data[edge_count] = ((double *)data)[i];
+						hxa_node->content.geometry.face_stack.layers[face_layers].data.double_data[hxa_node->content.geometry.face_count] = ((double *)data)[i];
 						face_layers++;
 					break;
 				}
@@ -296,11 +296,8 @@ void enough_to_hxa_node_geometry(ENode *e_node, HXANode *hxa_node)
 			edge_count += sides;
 		}
 	}
-	f_debug_memory();
+	f_debug_mem_check_bounds();
 	hxa_node->content.geometry.edge_corner_count = edge_count;
-
-	for(i = 0; i < edge_count; i++)
-		printf("ref[%u] = %i\n", i, hxa_node->content.geometry.corner_stack.layers[0].data.int32_data[i]);
 
 //	hxa_util_node_vertex_purge(hxa_node);
 }
@@ -315,6 +312,7 @@ void enough_to_hxa_one(char *file_name, ENode *e_node)
 	file->node_array = hxa_node;
 	enough_to_hxa_node_geometry(e_node, hxa_node);
 	file->node_count = 1;
+//	hxa_util_vertex_purge(file);
 	hxa_print(file, TRUE);
 	hxa_save(file_name, file);
 	hxa_util_free_file(file);

@@ -49,6 +49,14 @@ uint32 f_utf8_to_uint32(char *c, uint *pos)
 	bits = 0;
 	for(i = 1; i < character_count; i++)
 	{
+		if(c[*pos + i] == 0)
+		{
+			*pos += i;
+			return 0;
+		}
+	}
+	for(i = 1; i < character_count; i++)
+	{
 		out |= (wchar_t)(c[character_count - i] & 0x3f) << bits;
 		bits += 6;		/* 6 low bits in every byte */
 	}
@@ -104,6 +112,44 @@ uint f_uint32_to_utf8(uint32 character, char *out)
 		out[0] = FORGE_SEQ6 | ((bytes[0] & 0x40) >> 6);
 		return 6;
 	}
+}
+
+uint f_uint32_to_utf8_string(uint32 *string, char *out, size_t buffer_size)
+{
+	uint8 tmp[6];
+	uint i, j, k, size;
+	buffer_size--;
+	for(i = k = 0; string[i] != 0; i++)
+	{
+		size = f_uint32_to_utf8(string[i], tmp);
+		if(size < buffer_size)
+		{
+			for(j = 0; j < size; j++)
+				out[k++] = tmp[j];
+		}else
+			break;
+	}
+	out[k] = 0;
+	return k;
+}
+
+uint f_uint16_to_utf8_string(uint16 *string, char *out, size_t buffer_size)
+{
+	uint8 tmp[6];
+	uint i, j, k, size;
+	buffer_size--;
+	for(i = k = 0; string[i] != 0; i++)
+	{
+		size = f_uint32_to_utf8(string[i], tmp);
+		if(size < buffer_size)
+		{
+			for(j = 0; j < size; j++)
+				out[k++] = tmp[j];
+		}else
+			break;
+	}
+	out[k] = 0;
+	return k;
 }
 
 uint f_find_next_word(char *text)
@@ -394,6 +440,71 @@ uint f_text_parce_decimal(char *text, uint64 *output)
 	*output = 0;
 	return 0;
 }
+
+boolean f_text_convert_to_c(char *text, char *output, uint output_buffer_size)
+{
+	uint i;
+	output_buffer_size--;
+	for(i = 0; *text != '\0'; text++)
+	{
+		
+		if(*text == '\\' || *text == '"' || *text == '\'')
+		{
+			if(i + 2 > output_buffer_size)
+				return FALSE;
+			output[i++] = '\\';
+			output[i++] = *text;
+		}else if(*text >= ' ' && *text <= 127) 
+		{
+			if(i + 1 > output_buffer_size)
+				return FALSE;
+			output[i++] = *text;
+		}else if(*text == '\n')
+		{
+			if(i + 2 > output_buffer_size)
+				return FALSE;
+			output[i++] = '\\';
+			output[i++] = 'n';
+		}else if(*text == '\t')
+		{
+			if(i + 2 > output_buffer_size)
+				return FALSE;
+			output[i++] = '\\';
+			output[i++] = 't';
+		}else
+		{
+			char *hex = "0123456789ABCDEF";
+			// printf("\x23");
+			if(i + 4 > output_buffer_size)
+				return FALSE;
+			output[i++] = '\\';
+			output[i++] = 'x';
+			output[i++] = hex[(*text >> 4) & 15];
+			output[i++] = hex[*text & 15];
+		}
+	}
+	output[i++] = '\0';
+	return TRUE;
+}
+
+/*
+void f_text_convert_to_c_test(void)
+{
+	char in_buffer[513], output_buffer[1024];
+	uint i;
+	for(i = 0; i < 255; i++)
+	{
+		in_buffer[i * 2] = i + 1;
+		in_buffer[i * 2 + 1] = ' ';
+	}
+	in_buffer[i * 2 - 1] = '\0';
+	if(f_text_convert_to_c(in_buffer, output_buffer, 1024))
+		printf("%s", output_buffer);
+	else
+		printf("Error!");
+	printf("\x01 \x02 \x03 \x04 \x05 \x06 \x07 \x08 \t \n \x0B \x0C \x0D \x0E \x0F \x10 \x11 \x12 \x13 \x14 \x15 \x16 \x17 \x18 \x19 \x1A \x1B \x1C \x1D \x1E \x1F   ! \" # $ % & \' ( ) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ? @ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z [ \\ ] ^ _ ` a b c d e f g h i j k l m n o p q r s t u v w x y z { | } ~  \x80 \x81 \x82 \x83 \x84 \x85 \x86 \x87 \x88 \x89 \x8A \x8B \x8C \x8D \x8E \x8F \x90 \x91 \x92 \x93 \x94 \x95 \x96 \x97 \x98 \x99 \x9A \x9B \x9C \x9D \x9E \x9F \xA0 \xA1 \xA2 \xA3 \xA4 \xA5 \xA6 \xA7 \xA8 \xA9 \xAA \xAB \xAC \xAD \xAE \xAF \xB0 \xB1 \xB2 \xB3 \xB4 \xB5 \xB6 \xB7 \xB8 \xB9 \xBA \xBB \xBC \xBD \xBE \xBF \xC0 \xC1 \xC2 \xC3 \xC4 \xC5 \xC6 \xC7 \xC8 \xC9 \xCA \xCB \xCC \xCD \xCE \xCF \xD0 \xD1 \xD2 \xD3 \xD4 \xD5 \xD6 \xD7 \xD8 \xD9 \xDA \xDB \xDC \xDD \xDE \xDF \xE0 \xE1 \xE2 \xE3 \xE4 \xE5 \xE6 \xE7 \xE8 \xE9 \xEA \xEB \xEC \xED \xEE \xEF \xF0 \xF1 \xF2 \xF3 \xF4 \xF5 \xF6 \xF7 \xF8 \xF9 \xFA \xFB \xFC \xFD \xFE \xFF");
+}
+*/
 
 uint f_text_parce_real(char *text, int64 *integer_output, double *real_output, boolean *decimal)
 {
@@ -720,7 +831,7 @@ uint f_text_to_bits(uint64 *bits, char *text)
 		code = f_text_to_bits_lookup_table[(unsigned char)text[i]];
 		if(code < FORGE_BITS_TO_TEXT_SKIP)
 		{
-			out |= code + code << pos;
+			out |= code + (code << pos);
 			if(pos == 0)
 			{
 				*bits = out;
