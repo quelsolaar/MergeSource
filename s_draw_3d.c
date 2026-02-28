@@ -15,20 +15,23 @@ uint seduce_object_3d_location_fade;
 uint seduce_object_3d_location_reflect_color;
 uint seduce_object_3d_location_light_color;
 uint seduce_object_3d_location_shade_color;
+uint seduce_object_3d_location_light_pos[6];
 uint seduce_object_3d_texture_shade;
 uint seduce_object_3d_texture_reflection;
 
 char *seduce_object_3d_shader_vertex = 
 "attribute vec4 vertex;\n"
 "attribute vec4 normal;\n"
+"varying vec3 v;\n"
 "varying vec3 n;\n"
 "varying vec3 n2;\n"
 "varying vec3 n3;\n"
 "varying vec3 c;\n"
 "varying vec3 surface_pos;"
-"varying vec3 reflection_uv;\n"
 "varying float fernel;\n"
+"varying float limit;\n"
 "varying vec4 temp_color;\n"
+"uniform float fade;"
 "uniform vec3 fade_a;\n"
 "uniform vec3 fade_b;\n"
 "uniform mat4 ModelViewMatrix;\n"
@@ -37,30 +40,28 @@ char *seduce_object_3d_shader_vertex =
 "void main()\n"
 "{\n"
 "	c = mix(fade_a, fade_b, normal.aaa);\n"
-"	n3 = (NormalMatrix * vec4(normalize(normal.xyz), 0.0)).xyz;"
+"	n3 = (NormalMatrix * vec4(normalize(normal.xyz), 0.0)).xyz;\n"
 "	fernel = (1.0 - n3.z) * 2.0;\n"
 "	n = n3 * vec3(0.5) + vec3(0.5);\n"
 "	n2 = normalize(normal.xyz) * vec3(0.5) + vec3(0.5);\n"
-"	surface_pos = vec3((ModelViewMatrix * vec4(vertex.xyz, 1)).xy, 0.1);"
-//"	surface_pos /= surface_pos.zzz;"
+"	surface_pos = vec3((ModelViewMatrix * vec4(vertex.xyz, 1)).xy, 0.1);\n"
+"	limit = normal.a * -0.3 + fade * 2.0;\n"
+"	v = vertex.xyz;\n"
 "	gl_Position = ModelViewProjectionMatrix * vec4(vertex.xyz, 1.0);\n"
-"	surface_pos = gl_Position.xyz / gl_Position.zzz;"
-"	temp_color = vec4(normal.xyz, 1);\n"
-"	reflection_uv = vec3(0.5) + reflect(normalize(surface_pos), n3.xyz) * vec3(0.5);\n"
+"	surface_pos = gl_Position.xyz / gl_Position.zzz;\n"
 "}\n";
 
 char *seduce_object_3d_shader_fragment = 
+"varying vec3 v;"
 "varying vec3 n;"
 "varying vec3 n2;"
 "varying vec3 n3;"
 "varying vec3 c;"
-"varying vec3 reflection_uv;\n"
 "varying float fernel;\n"
-"varying vec4 temp_color;\n"
+"varying float limit;\n"
 "uniform sampler2D light;"
 "uniform sampler2D reflection;"
 "uniform vec3 reflect_color;"
-"uniform float fade;"
 "varying vec3 surface_pos;"
 "uniform vec3 light_color;"
 "uniform vec3 shade_color;"
@@ -74,7 +75,7 @@ char *seduce_object_3d_shader_fragment =
 "{"
 "	vec3 temp;"
 "	vec4 color;"
-"	float f, gray;"
+"	float f, gray, alpha;"
 "	temp = vec3(light_pos0.xy - surface_pos.xy, 0.1);"
 "	f = max(0.0, light_pos0.a * (1 + dot(normalize(temp), normalize(n3))) / dot(temp, temp));"
 "	temp = vec3(light_pos1.xy - surface_pos.xy, 0.1);"
@@ -87,11 +88,8 @@ char *seduce_object_3d_shader_fragment =
 "	f += max(0.0, light_pos4.a * (1 + dot(normalize(temp), normalize(n3))) / dot(temp, temp));"
 "	temp = vec3(light_pos5.xy - surface_pos.xy, 0.1);"
 "	f += max(0.0, light_pos5.a * (1 + dot(normalize(temp), normalize(n3))) / dot(temp, temp));"
-//"   color = texture2D(light, reflection_uv.xy);"
-//"   color = vec4(0.8);"
-//"	gl_FragColor = mix(vec4(c * (vec3(f * 0.1) *  light_color + color.xyz * color.xyz * vec3(fernel)), 1), vec4(c, 1), vec4(fade));"
-//"	gl_FragColor = mix(vec4(c * (light_color + color.xyz + vec3(f * fernel * 0.2)), 1), vec4(c, 1), vec4(fade));"
-"	gl_FragColor = vec4(c, 1.0) * vec4(0.7 + fernel * f * 0.02);"
+"	alpha = (limit - length(v.xyz)) * 32.0;\n"
+"	gl_FragColor = vec4(c * vec3(1.0 + f * 0.02) + vec3(fernel) * vec3(0.2, 0.2, 0.2), alpha);"
 "}";
 
 char *crystal_shader_vertex =
@@ -165,15 +163,18 @@ void sui_3d_export();
 void seduce_object_3d_geometry_init()
 {
 	RFormats vertex_format_types[2] = {R_FLOAT, R_FLOAT};
-	uint vertex_format_size[2] = {3, 4}, i, count;
+	uint vertex_format_size[2] = {3, 4}, i, j, count;
 	count = 0;
 	if(seduce_object_3d_pool != NULL)
 		r_array_free(seduce_object_3d_pool);
-	for(i = 0; i < SEDUCE_DRAW_3D_COUNT; i++)
+	for(i = 0; i < SEDUCE_OBJECT_COUNT; i++)
 		count += seduce_3d_object_size[i];
 	seduce_object_3d_pool = r_array_allocate(count, vertex_format_types, vertex_format_size, 2, 0);
-	for(i = 0; i < SEDUCE_DRAW_3D_COUNT; i++)
+	for(i = 0; i < SEDUCE_OBJECT_COUNT; i++)
 	{
+		for(j = 0; j < seduce_3d_object_size[i]; j++)
+			if(seduce_3d_object_array[i][j * 7 + 3] == 0 && seduce_3d_object_array[i][j * 7 + 4] == 0 && seduce_3d_object_array[i][j * 7 + 5] == 0 )
+				seduce_3d_object_array[i][j * 7 + 5] = 1.0;
 		seduce_object_3d_sections[i] = r_array_section_allocate_vertex(seduce_object_3d_pool, seduce_3d_object_size[i]);
 		r_array_load_vertex(seduce_object_3d_pool, seduce_object_3d_sections[i], seduce_3d_object_array[i], 0, seduce_3d_object_size[i]);
 	}
@@ -195,94 +196,59 @@ void seduce_object_3d_init()
 	seduce_object_3d_location_reflect_color = r_shader_uniform_location(seduce_object_3d_shader, "reflect_color");
 	seduce_object_3d_location_light_color = r_shader_uniform_location(seduce_object_3d_shader, "light_color");
 	seduce_object_3d_location_shade_color = r_shader_uniform_location(seduce_object_3d_shader, "shade_color");
+	seduce_object_3d_location_light_pos[0] = r_shader_uniform_location(seduce_object_3d_shader, "light_pos0");
+	seduce_object_3d_location_light_pos[1] = r_shader_uniform_location(seduce_object_3d_shader, "light_pos1");
+	seduce_object_3d_location_light_pos[2] = r_shader_uniform_location(seduce_object_3d_shader, "light_pos2");
+	seduce_object_3d_location_light_pos[3] = r_shader_uniform_location(seduce_object_3d_shader, "light_pos3");
+	seduce_object_3d_location_light_pos[4] = r_shader_uniform_location(seduce_object_3d_shader, "light_pos4");
+	seduce_object_3d_location_light_pos[5] = r_shader_uniform_location(seduce_object_3d_shader, "light_pos5");
+
+
 	seduce_object_3d_color(0.5, 0.5, 0.5, 
 							0.05, 0.05, 0.05,
 							1.0, 1.0, 1.0);
 //	sui_3d_export();
 }
 
-extern uint r_color_shader;
-/*
-void r_object_begin()
-{
-	r_shader_set(seduce_object_3d_shader);
-}
 
-void r_object_end()
-{
-	r_array_deactivate();
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-} 
-
-void r_object(uint id)
-{
-	r_array_section_draw(seduce_object_3d_pool, seduce_object_3d_sections[id], GL_TRIANGLES, 0, -1);
-}*/
-
-
-float seduce_object_3d_lightning(BInputState *input, float pos_x, float pos_y, float pos_z, uint *locations, uint location_count)
+void seduce_object_3d_lightning(BInputState *input)
 {
 	static float *brightness_pos = NULL;
-	static uint frame = 0;
-	uint i, count;
-	float vec[2], f, best, pos[3];
+	uint i, max_count;
+	float f;
+	max_count = betray_support_functionality(B_SF_POINTER_COUNT_MAX);
+	if(max_count < 6)
+		max_count = 6;
 
-	RMatrix	*matrix;
-	matrix = r_matrix_get();
-	f_transform3f(pos, matrix->matrix[matrix->current], pos_x, pos_y, pos_z);
-	pos[0] /= -pos[2];
-	pos[1] /= -pos[2];
-
-	count = betray_support_functionality(B_SF_POINTER_COUNT_MAX);
 	if(brightness_pos == NULL)
 	{
-		brightness_pos = malloc((sizeof *brightness_pos) * 3 * count);
-		for(i = 0; i < count * 3; i++)
+
+		brightness_pos = malloc((sizeof *brightness_pos) * 3 * max_count);
+		for(i = 0; i < max_count * 3; i++)
 			brightness_pos[i] = 0;
 	}
-	if(frame != input->frame_number)
-	{
-		frame = input->frame_number;
-		for(i = 0; i < input->pointer_count; i++)
-		{
-			brightness_pos[i * 3 + 0] = input->pointers[i].pointer_x;
-			brightness_pos[i * 3 + 1] = input->pointers[i].pointer_y;
-			if(input->pointers[i].button[0])
-				brightness_pos[i * 3 + 2] = 1.0 * input->delta_time * 5.0 + brightness_pos[i * 3 + 2] * (1.0 - input->delta_time * 5.0);
-			else if(input->pointers[i].delta_pointer_x > 0.001 || 
-					input->pointers[i].delta_pointer_x < -0.001 || 
-					input->pointers[i].delta_pointer_y > 0.001 || 
-					input->pointers[i].delta_pointer_y < -0.001)
-				brightness_pos[i * 3 + 2] = 0.5 * input->delta_time + brightness_pos[i * 3 + 2] * (1.0 - input->delta_time);
-			else
-				brightness_pos[i * 3 + 2] = brightness_pos[i * 3 + 2] * (1.0 - input->delta_time);
-		}
-		for(; i < count; i++)
-			brightness_pos[i * 3 + 2] = brightness_pos[i * 3 + 2] * (1.0 - input->delta_time);
-	}
 
-	best = 1000000.0;
 	for(i = 0; i < input->pointer_count; i++)
 	{
-		vec[0] = (brightness_pos[i * 3 + 0] - pos[0]) * 5.0;
-		vec[1] = (brightness_pos[i * 3 + 1] - pos[1]) * 5.0;
-		f = vec[0] * vec[0] + vec[1] * vec[1];
-		if(f < best)
-			best = f;
+		brightness_pos[i * 3 + 0] = input->pointers[i].pointer_x;
+		brightness_pos[i * 3 + 1] = input->pointers[i].pointer_y;
+		if(input->pointers[i].button[0])
+			brightness_pos[i * 3 + 2] = 1.0 * input->delta_time * 5.0 + brightness_pos[i * 3 + 2] * (1.0 - input->delta_time * 5.0);
+		else if(input->pointers[i].delta_pointer_x > 0.001 || 
+				input->pointers[i].delta_pointer_x < -0.001 || 
+				input->pointers[i].delta_pointer_y > 0.001 || 
+				input->pointers[i].delta_pointer_y < -0.001)
+			brightness_pos[i * 3 + 2] = 0.5 * input->delta_time + brightness_pos[i * 3 + 2] * (1.0 - input->delta_time);
+		else
+			brightness_pos[i * 3 + 2] = brightness_pos[i * 3 + 2] * (1.0 - input->delta_time);
 	}
-
-	for(i = 0; i < location_count; i++)
-	{
-	/*	if(brightness_pos[i * 3 + 2] > 0.2)
-			r_shader_vec4_set(NULL, locations[i], brightness_pos[i * 3], brightness_pos[i * 3 + 1], -0.75, 0.2);
-		else */
-			r_shader_vec4_set(NULL, locations[i], brightness_pos[i * 3], brightness_pos[i * 3 + 1], -0.75, brightness_pos[i * 3 + 2]);
-	}
-
-	return 1.0 - (1 / (1 + best));
+	for(; i < max_count; i++)
+		brightness_pos[i * 3 + 2] = brightness_pos[i * 3 + 2] * (1.0 - input->delta_time);
+	for(i = 0; i < 6; i++)
+		r_shader_vec4_set(seduce_object_3d_shader, seduce_object_3d_location_light_pos[i], brightness_pos[i * 3], brightness_pos[i * 3 + 1], -0.75, brightness_pos[i * 3 + 2]);
 }
 
-void seduce_object_3d_draw(BInputState *input, float pos_x, float pos_y, float pos_z, float size, uint id, float fade, float *color)
+void seduce_object_3d_draw(BInputState *input, float pos_x, float pos_y, float pos_z, float size, uint id, float time, float *color)
 {
 	uint location[6];
 	float f;
@@ -291,53 +257,56 @@ void seduce_object_3d_draw(BInputState *input, float pos_x, float pos_y, float p
 		return;
 	r_shader_set(seduce_object_3d_shader);
 	matrix = r_matrix_get();
-	
-	location[0] = r_shader_uniform_location(seduce_object_3d_shader, "light_pos0");
-	location[1] = r_shader_uniform_location(seduce_object_3d_shader, "light_pos1");
-	location[2] = r_shader_uniform_location(seduce_object_3d_shader, "light_pos2");
-	location[3] = r_shader_uniform_location(seduce_object_3d_shader, "light_pos3");
-	location[4] = r_shader_uniform_location(seduce_object_3d_shader, "light_pos4");
-	location[5] = r_shader_uniform_location(seduce_object_3d_shader, "light_pos5");
-	fade = (1.0 - fade) * seduce_object_3d_lightning(input, pos_x, pos_y, pos_z, location, 6);
-
-	f = 0.4 - fade * 0.3;
+	f = 0.4 - time * 0.3;
 	r_shader_vec3_set(seduce_object_3d_shader, seduce_object_3d_location_fade_a, f, f, f);
 	if(color == NULL)
 	{
-		f = 0.7 - fade * 0.4;
+		f = 0.7 - time * 0.4;
 		r_shader_vec3_set(seduce_object_3d_shader, seduce_object_3d_location_fade_b, f, f, f);
 	}else
 		r_shader_vec3_set(seduce_object_3d_shader, seduce_object_3d_location_fade_b, color[0], color[1], color[2]);
 	r_matrix_push(matrix);
 	r_matrix_translate(matrix, pos_x, pos_y, pos_z);
-	r_matrix_scale(matrix, size, size, size * (1.0 - fade));
-	r_shader_float_set(seduce_object_3d_shader, seduce_object_3d_location_fade, fade);
-	glBlendFunc(GL_ONE, GL_ZERO);
-	glEnable(GL_DEPTH_TEST);
-	r_shader_set(seduce_object_3d_shader);
+	r_matrix_scale(matrix, size, size, size);
+//	r_shader_state_set_cull_face(seduce_object_3d_shader, GL_BACK);
+//	r_shader_state_set_offset(seduce_object_3d_shader, input->pointers[0].pointer_x * 10,  input->pointers[0].pointer_y * 1.6); 
+	r_shader_float_set(seduce_object_3d_shader, seduce_object_3d_location_fade, time * time);
 	r_array_section_draw(seduce_object_3d_pool, seduce_object_3d_sections[id], GL_TRIANGLES, 0, -1);
+//	r_array_section_draw(seduce_object_3d_pool, seduce_object_3d_sections[id], GL_LINES, 0, -1);
 	r_matrix_pop(matrix);
 }
 
-
-
 uint seduce_object_3d_count()
 {
-	return SEDUCE_DRAW_3D_COUNT;
+	return SEDUCE_OBJECT_COUNT;
 }
 
 char *seduce_object_3d_object_name(uint object)
 {
-	return seduce_3d_object_name[object];
+	return seduce_3d_object_names[object];
 }
+
+void seduce_object_3d_test(BInputState *input)
+{
+	float pos_x, pos_y, color[3] = {1, 1, 1.0};
+	uint i;
+	return;
+	for(i = 21; i < SEDUCE_OBJECT_COUNT; i++)
+	{
+		pos_x = (i % 9) / 5.0 - 0.9;
+		pos_y = (i / 9) / 5.0 - 0.7;
+		seduce_object_3d_draw(input, pos_x, pos_y, 0, 0.06, i, 1, color);
+	}
+}
+
 
 uint seduce_object_3d_object_lookup(char *name)
 {
 	uint i, j;
-	for(i = 0; i < SEDUCE_DRAW_3D_COUNT; i++)
+	for(i = 0; i < SEDUCE_OBJECT_COUNT; i++)
 	{
-		for(j = 0; name[j] != 0 && name[j] == seduce_3d_object_name[i][j]; j++);
-		if(name[j] == seduce_3d_object_name[i][j])
+		for(j = 0; name[j] != 0 && name[j] == seduce_3d_object_names[i][j]; j++);
+		if(name[j] == seduce_3d_object_names[i][j])
 			return i;
 	}
 	return -1;
@@ -353,9 +322,9 @@ void sui_3d_export()
 	file = fopen("seduce_export.vml", "w"); 
 	fprintf(file, "<vml version=\"1.0\">\n\n");
 
-	for(i = 0; i < SEDUCE_DRAW_3D_COUNT; i++)
+	for(i = 0; i < SEDUCE_OBJECT_COUNT; i++)
 	{
-		fprintf(file, "<node-geometry id=\"n%u\" name=\"%s\">\n", i, seduce_3d_object_name[i]);
+		fprintf(file, "<node-geometry id=\"n%u\" name=\"%s\">\n", i, seduce_3d_object_names[i]);
 		fprintf(file, "\t<layers>\n");
 		fprintf(file, "\t\t<layer-vertex-xyz name=\"vertex\">\n");
 		for(j = 0; j < seduce_3d_object_size[i]; j++)
@@ -394,3 +363,119 @@ void sui_3d_export()
 	exit(0);
 }
 
+//#define SEDUCE_HXA_IMPORT
+#ifdef SEDUCE_HXA_IMPORT
+#include "hxa_utils.h"
+
+extern float *hxa_vertex_array_build(HXANode *node, char **names, unsigned char *component_ids, float *defaults, unsigned intcomponent_count);
+extern float *hxa_unreferenced_vertex_array_build(HXANode *node, char **names, unsigned char *component_ids, float *defaults, unsigned intcomponent_count);
+extern HXAFile *hxa_load(char *file_name, int silent);
+extern void hxa_util_triangulate_node(HXANode *node, unsigned int max_sides);
+extern int hxa_util_validate(HXAFile *file, int silent);
+unsigned int *hxa_neighbour_node(HXANode *node);
+
+void *hxa_util_array_extract(HXANode *node, size_t vertex_stride, size_t *vertex_param_offsets, unsigned int *vertex_param_types, char **vertex_param_names, hxa_uint8 *vertex_component, void ** defaults, unsigned int param_count);
+
+
+void seduce_print_hxa_node(FILE *file, HXANode *node, char *name)
+{
+	char *names[7] = {HXA_CONVENTION_HARD_BASE_VERTEX_LAYER_NAME, HXA_CONVENTION_HARD_BASE_VERTEX_LAYER_NAME, HXA_CONVENTION_HARD_BASE_VERTEX_LAYER_NAME, HXA_CONVENTION_SOFT_LAYER_NORMALS, HXA_CONVENTION_SOFT_LAYER_NORMALS, HXA_CONVENTION_SOFT_LAYER_NORMALS, "material"};
+	unsigned char component_ids[7] = {0, 1, 2, 0, 1, 2, 0};
+	float *array, defaults[7] = {0, 0, 0, 0, 0, 1, 0};
+	size_t vertex_param_offsets[7] = {0, sizeof(float), sizeof(float) * 2, sizeof(float) * 3, sizeof(float) * 4, sizeof(float) * 5, sizeof(float) * 6};
+	unsigned int vertex_param_types[7] = {HXA_TC_FLOAT32, HXA_TC_FLOAT32, HXA_TC_FLOAT32, HXA_TC_FLOAT32, HXA_TC_FLOAT32, HXA_TC_FLOAT32, HXA_TC_FLOAT32};
+	uint i, count;
+f_debug_mem_check_bounds();
+//	hxa_util_normal_corner(node);
+f_debug_mem_check_bounds();
+//	hxa_neighbour_node(node);
+f_debug_mem_check_bounds();
+	hxa_util_triangulate_node(node, 3);
+f_debug_mem_check_bounds();
+f_debug_mem_check_bounds();
+	count = node->content.geometry.edge_corner_count * 7;
+	array = hxa_util_array_extract(node, sizeof(float) * 7, vertex_param_offsets, vertex_param_types, names, component_ids, defaults, 7);
+
+
+//	array = hxa_unreferenced_vertex_array_build(node, names, component_ids, NULL, 7);
+	fprintf(file, "float seduce_array_%s[%u * 7] = {%ff", name, node->content.geometry.edge_corner_count, array[0]);
+/*	for(i = 0; i < count; i += 7)
+		if(array[i + 6] > 1.0)
+			array[i + 6] = 1.0;*/
+	for(i = 1; i < count; i++)
+	{
+		if(i % (7 * 8) == 0)
+			fprintf(file, "\n\t\t\t\t");
+		fprintf(file, ", %ff", array[i]);
+	}
+	fprintf(file, "};\n");
+}
+
+/*
+void seduce_print_hxa_node(FILE *file, HXANode *node, char *name)
+{
+	char *names[7] = {HXA_CONVENTION_HARD_BASE_VERTEX_LAYER_NAME, HXA_CONVENTION_HARD_BASE_VERTEX_LAYER_NAME, HXA_CONVENTION_HARD_BASE_VERTEX_LAYER_NAME, HXA_CONVENTION_SOFT_LAYER_NORMALS, HXA_CONVENTION_SOFT_LAYER_NORMALS, HXA_CONVENTION_SOFT_LAYER_NORMALS, "material"};
+	unsigned char component_ids[7] = {0, 1, 2, 0, 1, 2, 0};
+	float *array, defaults[7] = {0, 0, 0, 0, 0, 1, 0};
+	uint i, count;
+	hxa_neighbour_node(node);
+	hxa_util_triangulate_node(node, 3);
+	count = node->content.geometry.edge_corner_count * 7;
+	array = hxa_unreferenced_vertex_array_build(node, names, component_ids, NULL, 7);
+	fprintf(file, "float seduce_array_%s[%u * 7] = {%ff", name, node->content.geometry.edge_corner_count, array[0]);
+	for(i = 0; i < count; i += 7)
+		if(array[i + 6] > 1.0)
+			array[i + 6] = 1.0;
+	for(i = 1; i < count; i++)
+	{
+		if(i % (7 * 8) == 0)
+			fprintf(file, "\n\t\t\t\t");
+		fprintf(file, ", %ff", array[i]);
+	}
+	fprintf(file, "};\n");
+}*/
+
+void seduce_print_hxa(char *file_name)
+{
+	FILE *save;
+	HXAFile *file;
+	uint8 *data;
+	size_t size;
+	char *name = HXA_CONVENTION_SOFT_NAME;
+	uint i, j, k;
+	data = f_text_load(file_name, &size);
+	if(data == NULL)
+		return;
+	file = hxa_unserialize(data, size, FALSE);
+//	file->node_array[0].content.geometry.corner_stack.layers = realloc(file->node_array[0].content.geometry.corner_stack.layers, (sizeof *file->node_array[0].content.geometry.corner_stack.layers) * file->node_array[0].content.geometry.corner_stack.layer_count);
+//	hxa_util_normal_corner(file->node_array);
+	free(data);
+//	file = hxa_load(file_name, TRUE);
+	if(file == NULL)
+		return;
+	hxa_print(file, TRUE);
+	save = fopen("icon_output.c", "w");
+	if(save == NULL)
+		return;
+	hxa_util_validate(file, FALSE);
+	for(i = 0; i < file->node_count; i++)
+	{
+		if(file->node_array[i].type == HXA_NT_GEOMETRY)
+		{
+			
+			for(j = 0; j < file->node_array[i].meta_data_count; j++)
+			{
+				for(k = 0; file->node_array[i].meta_data[j].name[k] == name[k] && name[k] != 0; k++);
+				if(file->node_array[i].meta_data[j].name[k] == name[k])
+				{
+					seduce_print_hxa_node(save, &file->node_array[i], file->node_array[i].meta_data[j].value.text_value);
+					break;
+				}
+			}
+			if(j == file->node_array[i].meta_data_count)
+				seduce_print_hxa_node(save, &file->node_array[i], "unnamed");
+		}
+	}
+	fclose(save);
+}
+#endif

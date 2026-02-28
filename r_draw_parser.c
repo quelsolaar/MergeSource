@@ -196,18 +196,26 @@ uint r_shader_parse_test(char *shader, char *keyword)
 
 //gl_DrawID
 //gl_InstanceID
-void r_shader_parse_clean(char *shader, char *output, RShaderInput *input, uint input_count,  uint instance_id, boolean fragment_add, boolean pass_to_fragment)
+void r_shader_parse_clean(char *shader, char *output, RShaderInput *input, uint input_count,  uint instance_id, uint stage_type)
 {
 	uint i, j = 0, k, l, out = 0;
 	char *add = "InstanceData.b[gl_InstanceID + gl_BaseInstanceARB].";  
-	if(fragment_add && instance_id != -1)
+	if(stage_type != GL_VERTEX_SHADER_ARB && instance_id != -1)
 	{
-		char *in = "in flat int relinquish_instance_id;\n\n";
+		char *in;
+		if(stage_type == GL_GEOMETRY_SHADER_ARB)
+		{
+			in = "in flat int relinquish_instance_id[1];\n\n";
+			add = "InstanceData.b[relinquish_instance_id[0]].";
+		}else
+		{
+			in = "in flat int relinquish_instance_id;\n\n";
+			add = "InstanceData.b[relinquish_instance_id].";
+		}
 		for(l = 0; in[l] != 0; l++)
 			output[j++] = in[l];
-		add = "InstanceData.b[relinquish_instance_id].";
 	}
-	if(pass_to_fragment && instance_id != -1)
+	if(stage_type == GL_VERTEX_SHADER_ARB && instance_id != -1)
 	{
 		char *in = "out flat int relinquish_instance_id;\n\n";
 		for(l = 0; in[l] != 0; l++)
@@ -222,7 +230,7 @@ void r_shader_parse_clean(char *shader, char *output, RShaderInput *input, uint 
 				out = r_shader_parse_test(&shader[i], "varying");
 			if(out == 0)
 				out = r_shader_parse_test(&shader[i], "attribute");
-			if(out == 0 && pass_to_fragment && instance_id != -1)
+			if(out == 0 && stage_type == GL_VERTEX_SHADER_ARB && instance_id != -1)
 			{
 				char *main = "main", *move = "\n\trelinquish_instance_id = gl_InstanceID + gl_BaseInstanceARB;\n";
 				for(k = 0; main[k] == shader[i + k] && main[k] != 0; k++);
@@ -411,14 +419,15 @@ uint shader_parse_input_print(char *output, uint output_size, RShaderInput *inpu
 						if(input[i].qualifyer == R_SIQ_UNIFORM && input[i].block == k && input[i].stages[stage])
 						{
 							if(input[i].array_length == 0)
-								sprintf(buffer, "uniform %s %s %u;\n",  r_type_names[input[i].type], input[i].name, input[i].block);
+								sprintf(buffer, "uniform %s %s;\n",  r_type_names[input[i].type], input[i].name);
 							else
 								sprintf(buffer, "uniform %s %s[%u];\n",  r_type_names[input[i].type], input[i].name, input[i].array_length);
 							for(j = 0; buffer[j] != 0 && pos < output_size; j++)
 								output[pos++] = buffer[j];
 						}
 					}
-
+					output[pos] = 0;
+					output[pos] += 0;
 				}else
 				{
 					for(i = 0; i < input_count; i++)
@@ -441,18 +450,22 @@ uint shader_parse_input_print(char *output, uint output_size, RShaderInput *inpu
 							for(j = 0; buffer[j] != 0 && pos < output_size; j++)
 								output[pos++] = buffer[j];	
 						}
+					output[pos] = 0;
+					output[pos] += 0;
 						for(i = 0; i < input_count; i++)
 						{
 							if(input[i].block == k && input[i].qualifyer == R_SIQ_UNIFORM)
 							{
 								if(input[i].array_length == 0)
-									sprintf(buffer, "\t%s %s '%u;\n",  r_type_names[input[i].type], input[i].name, input[i].block);
+									sprintf(buffer, "\t%s %s;\n",  r_type_names[input[i].type], input[i].name);
 								else
 									sprintf(buffer, "\t%s %s[%u];\n",  r_type_names[input[i].type], input[i].name, input[i].array_length);
 								for(j = 0; buffer[j] != 0 && pos < output_size; j++)
 									output[pos++] = buffer[j];
 							}
 						}
+					output[pos] = 0;
+					output[pos] += 0;
 						if(index_block != k)
 						{
 							sprintf(buffer, "};\n\n");
@@ -482,6 +495,8 @@ uint shader_parse_input_print(char *output, uint output_size, RShaderInput *inpu
 									output[pos++] = buffer_footer[j];	
 							}
 						}
+					output[pos] = 0;
+					output[pos] += 0;
 					}
 				}
 			}
@@ -624,7 +639,7 @@ uint r_parse_shaders(char **output, char **shader, uint *stages, uint shader_cou
 					for(k = 0; k < R_MAX_SHADER_STAGES; k++)
 						if(input[j].stages[k])
 							input[i].stages[k] = TRUE;
-					while(input[i].size % input[j].size != 0)
+					while(input[i].size % input[j].size != 0 && input[i].size % 16 != 0)
 						input[i].size++;
 					input[j].offset = input[i].size;
 					input[i].size += input[j].size;
@@ -700,14 +715,14 @@ uint r_parse_shaders(char **output, char **shader, uint *stages, uint shader_cou
             if(version > 150)
             {
                 if(stages[i] == GL_FRAGMENT_SHADER_ARB)
-                    sprintf(&output[i][pos], "#define texture2D texture\n#define gl_FragColor betray_FragColor\nlayout(location = 0) out vec4 betray_FragColor;\n");
+                    sprintf(&output[i][pos], "#define texture2D texture\n#define gl_FragColor betray_FragColor\nlayout(location = 0) out vec4 betray_FragColor;\n#define gl_FragColor2 betray_FragColor2\nlayout(location = 1) out vec4 betray_FragColor2;\n");
                 else
                     sprintf(&output[i][pos], "#define texture2D texture\n");
                 for(; output[i][pos] != 0; pos++);
             }
 		}
 		pos += shader_parse_input_print(&output[i][pos], 1024 * 1024, input, count, mode, *instance_id, i, version, stages[i]);
-		r_shader_parse_clean(shader[i], &output[i][pos], input, count, instance_array, stages[i] == GL_FRAGMENT_SHADER_ARB, i + 1 < shader_count && stages[i + 1] == GL_FRAGMENT_SHADER_ARB);
+		r_shader_parse_clean(shader[i], &output[i][pos], input, count, instance_array, stages[i]);
 	}
 
 

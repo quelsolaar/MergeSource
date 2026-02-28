@@ -21,6 +21,8 @@ void (APIENTRY *r_glFramebufferRenderbufferEXT)(GLenum target, GLenum attachment
 void (APIENTRY *r_glDrawBuffersARB)(GLuint, GLenum *buffers) = NULL;
 
 void (APIENTRY *r_glTexImage3D)(GLenum target, int level, GLenum internalformat, uint width, uint height, uint depth, int border, GLenum format, GLenum type, const void* pixels) = NULL;
+extern GLvoid (APIENTRY *r_glActiveTextureARB)(GLenum texture);
+
 
 uint r_framebuffer_debug_fbo_allocated = 0;
 uint r_framebuffer_debug_image_allocated = 0;
@@ -132,9 +134,7 @@ void r_framebuffer_bind(void *fbo)
 	if(fbo == NULL)
 	{
 		r_glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);	
-#ifndef BETRAY_CONTEXT_OPENGLES
-        glDrawBuffer(GL_BACK);
-#endif
+		glDrawBuffer(GL_BACK);
 	}else
 	{
 		GLenum attachements[8] = {GL_COLOR_ATTACHMENT0_EXT, GL_COLOR_ATTACHMENT0_EXT + 1, GL_COLOR_ATTACHMENT0_EXT + 2, GL_COLOR_ATTACHMENT0_EXT + 3, GL_COLOR_ATTACHMENT0_EXT + 4, GL_COLOR_ATTACHMENT0_EXT + 5, GL_COLOR_ATTACHMENT0_EXT + 6, GL_COLOR_ATTACHMENT0_EXT + 7};
@@ -177,54 +177,53 @@ void r_framebuffer_clear(float red, float green, float blue, float alpha, boolea
 
 boolean r_framebuffer_init(void)
 {
-    r_glTexImage3D = r_extension_get_address("glTexImage3D");
+	r_glTexImage3D = r_extension_get_address("glTexImage3D");
 
-    r_glDrawBuffersARB = r_extension_get_address("glDrawBuffersARB");
-    if( r_glDrawBuffersARB == NULL )
-    {
-        r_glDrawBuffersARB = r_extension_get_address("glDrawBuffers");
-    }
-    
-#ifndef BETRAY_CONTEXT_OPENGLES
-#ifndef __APPLE__
-    //FK: Macos OpenGL Extenion list is unreliable :-/
-    if(r_extension_test("GL_ARB_framebuffer_object"))
-#endif
-    {
-        r_glBindFramebufferEXT = r_extension_get_address("glBindFramebuffer");
-        r_glDeleteFramebuffersEXT = r_extension_get_address("glDeleteFramebuffers");
-        r_glGenFramebuffersEXT = r_extension_get_address("glGenFramebuffers");
-        r_glBindRenderbufferEXT = r_extension_get_address("glBindRenderbuffer");
-        r_glDeleteRenderbuffersEXT = r_extension_get_address("glDeleteRenderbuffers");
-        r_glGenRenderbuffersEXT = r_extension_get_address("glGenRenderbuffers");
-        r_glCheckFramebufferStatusEXT = r_extension_get_address("glCheckFramebufferStatus");
-        r_glRenderbufferStorageEXT = r_extension_get_address("glRenderbufferStorage");
-        r_glFramebufferTexture2DEXT = r_extension_get_address("glFramebufferTexture2D");
-        r_glFramebufferRenderbufferEXT = r_extension_get_address("glFramebufferRenderbuffer");
-        return TRUE;
-    }
-    return FALSE;
-#else
-    //FK: Part of OpenGL ES since ES 2.0 - No need to check for extension since there won't be an extension.
-    r_glBindFramebufferEXT = glBindFramebuffer;
-    r_glDeleteFramebuffersEXT = glDeleteFramebuffers;
-    r_glGenFramebuffersEXT = glGenFramebuffers;
-    r_glBindRenderbufferEXT = glBindRenderbuffer;
-    r_glDeleteRenderbuffersEXT = glDeleteRenderbuffers;
-    r_glGenRenderbuffersEXT = glGenRenderbuffers;
-    r_glCheckFramebufferStatusEXT = glCheckFramebufferStatus;
-    r_glRenderbufferStorageEXT = glRenderbufferStorage;
-    r_glFramebufferTexture2DEXT = glFramebufferTexture2D;
-    r_glFramebufferRenderbufferEXT = glFramebufferRenderbuffer;
-    return TRUE;
-#endif
+	r_glDrawBuffersARB = r_extension_get_address("glDrawBuffersARB");
+
+	if(r_extension_test("GL_ARB_framebuffer_object"))
+	{
+		r_glBindFramebufferEXT = r_extension_get_address("glBindFramebufferEXT");
+		r_glDeleteFramebuffersEXT = r_extension_get_address("glDeleteFramebuffersEXT");
+		r_glGenFramebuffersEXT = r_extension_get_address("glGenFramebuffersEXT");
+		r_glBindRenderbufferEXT = r_extension_get_address("glBindRenderbufferEXT");
+		r_glDeleteRenderbuffersEXT = r_extension_get_address("glDeleteRenderbuffersEXT");
+		r_glGenRenderbuffersEXT = r_extension_get_address("glGenRenderbuffersEXT");
+		r_glCheckFramebufferStatusEXT = r_extension_get_address("glCheckFramebufferStatusEXT");
+		r_glRenderbufferStorageEXT = r_extension_get_address("glRenderbufferStorageEXT");
+		r_glFramebufferTexture2DEXT = r_extension_get_address("glFramebufferTexture2DEXT");
+		r_glFramebufferRenderbufferEXT = r_extension_get_address("glFramebufferRenderbufferEXT");
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
-uint r_texture_allocate(PImageFormat format, uint x, uint y, uint z, boolean filter, boolean tile, void *data)
-{
-	uint i, texture_id, type, dimensions = GL_TEXTURE_2D, internal_format, input_format, data_type, stride;
-	boolean free_data;
 
+
+uint r_texture_allocate_internal(PImageFormat format, uint x, uint y, uint z, boolean filter, boolean tile, void *data, char *file, uint line)
+{
+	uint data_types_sizes[] = {1 * sizeof(unsigned char), // R_IF_R_UINT8, /* Single chanel texture format with 8 bit integer storage corresponding to a float in GLSL */
+								2 * sizeof(unsigned char), // R_IF_RG_UINT8, /* Dual chanel texture format with 8 bit integer storage corresponding to a vec2 in GLSL */
+								3 * sizeof(unsigned char), // R_IF_RGB_UINT8, /* Tripple chanel texture format with 8 bit integer storage corresponding to a vec3 in GLSL */
+								4 * sizeof(unsigned char), // R_IF_RGBA_UINT8, /* Quadruple chanel texture format with 8 bit integer storage corresponding to a vec4 in GLSL */
+								1 * sizeof(unsigned short), // R_IF_R_FLOAT16,/* Single chanel texture format with 16 bit floating point storage corresponding to a float in GLSL */
+								2 * sizeof(unsigned short), // R_IF_RG_FLOAT16, /* Dual chanel texture format with 16 bit floating point storage corresponding to a vec2 in GLSL */
+								3 * sizeof(unsigned short), // R_IF_RGB_FLOAT16, /* Tripple chanel texture format with 16 bit floating point storage corresponding to a vec3 in GLSL */
+								4 * sizeof(unsigned short), // R_IF_RGBA_FLOAT16, /* Quadruple chanel texture format with 16 bit floating point storage corresponding to a vec4 in GLSL */
+								1 * sizeof(float), // R_IF_R_FLOAT32,/* Single chanel texture format with 32 bit floating point storage corresponding to a float in GLSL */
+								2 * sizeof(short), // R_IF_RG_FLOAT32, /* Dual chanel texture format with 32 bit floating point storage corresponding to a vec2 in GLSL */
+								3 * sizeof(short), // R_IF_RGB_FLOAT32, /* Tripple chanel texture format with 32 bit floating point storage corresponding to a vec3 in GLSL */
+								4 * sizeof(short), // R_IF_RGBA_FLOAT32, /* Quadruple chanel texture format with 32 bit floating point storage corresponding to a vec4 in GLSL */
+								2 * sizeof(unsigned char), // R_IF_DEPTH16, /*16 Bit depth map.*/
+								3 * sizeof(unsigned char), // R_IF_DEPTH24, /*24 Bit depth map.*/
+								4 * sizeof(unsigned char), // R_IF_DEPTH32, /*32 Bit depth map.*/
+								4 * sizeof(unsigned char)}; // R_IF_DEPTH24_STENCIL8
+
+	uint i, j, texture_id, type, dimensions = GL_TEXTURE_2D, internal_format, input_format, data_type, stride;
+	boolean free_data;	
+	union {void *pointer; uint32 texture_id;}tracker_handle;
+	tracker_handle.pointer = NULL;
 	if(x == 0)
 		x = 1;	
 	if(y == 0)
@@ -240,7 +239,10 @@ uint r_texture_allocate(PImageFormat format, uint x, uint y, uint z, boolean fil
 	r_framebuffer_debug_image_allocated++;
 	if(format >= R_IF_DEPTH16)
 	{
-		r_glGenRenderbuffersEXT(1, &texture_id);		
+		r_glGenRenderbuffersEXT(1, &texture_id);
+		tracker_handle.texture_id = texture_id;
+		r_draw_asset_track(RELINQUISH_AT_TEXTURE, tracker_handle.pointer, x * y * data_types_sizes[format], file, line);
+
 		r_glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, texture_id);
 		if(format == R_IF_DEPTH16)
 			r_glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT16, x, y);
@@ -260,6 +262,9 @@ uint r_texture_allocate(PImageFormat format, uint x, uint y, uint z, boolean fil
 
 		glEnable(dimensions);
 		glGenTextures(1, &texture_id);
+		tracker_handle.texture_id = texture_id;
+		r_draw_asset_track(RELINQUISH_AT_TEXTURE, tracker_handle.pointer, x * y * z * data_types_sizes[format], file, line);
+
 		glBindTexture(dimensions, texture_id);
 
 		switch(format)
@@ -330,29 +335,39 @@ uint r_texture_allocate(PImageFormat format, uint x, uint y, uint z, boolean fil
 			break;
 		}
 		stride = 3 + format % 2;
-		free_data = data == NULL;
+		free_data = data == NULL && data != RELINQUIS_NO_INITIALIZATION;
+		if(data == RELINQUIS_NO_INITIALIZATION)
+			data = NULL;
 		if(free_data)
 		{
-			float *buf = NULL;
+			float *buf = NULL, *b;
 			data_type = GL_FLOAT;
 			if(dimensions == GL_TEXTURE_2D)
 			{
 				
 				buf = malloc((sizeof *buf) * x * y * stride);
-				for(i = 0; i < x * y; i++)
+				b = buf;
+				for(i = 0; i < y; i++)
 				{
-					buf[i * stride + 0] = (float)(i % x) / (float)x;
-					buf[i * stride + 1] = (float)(i / x) / (float)y;
-					buf[i * stride + 2] = 1.0;
-
-					if(((i % x) / 16 + (i / x) / 16) % 2 == 0)
+					for(j = 0; j < x; j++)
 					{
-						buf[i * stride + 0] = 1.0f - buf[i * stride + 0];
-						buf[i * stride + 1] = 1.0f - buf[i * stride + 1];
-						buf[i * stride + 2] = 1.0f - buf[i * stride + 2];
+						b[0] = (float)j / (float)x;
+						b[1] = (float)i / (float)y;
+						b[2] = 1.0;
+
+						if((((i >> 4) + (j >> 4)) & 1) == 0)
+						{
+							b[0] = 1.0f - b[0];
+							b[1] = 1.0f - b[1];
+							b[2] = 1.0f - b[2];
+						}
+						if(stride == 4)
+						{
+							b[3] = (float)(((i >> 4) + (j >> 4)) & 1);
+							b += 4;
+						}else
+							b += 3;	
 					}
-					if(stride == 4)
-						buf[i * stride + 3] = (float)(((i % x) / 16 + (i / x) / 16) % 2);
 				}
 			}
 			if(dimensions == GL_TEXTURE_3D)
@@ -536,10 +551,75 @@ void r_texture_update(uint texture_id, PImageFormat format, uint x_offset, uint 
 	glTexSubImage2D(GL_TEXTURE_2D, 0, x_offset, y_offset, x_size, y_size, input_format, data_type, data);
 }
 
+void r_texture_read(uint texture_id, PImageFormat format, uint x, uint y, uint z, void *output_data)
+{	
+	uint output_format, data_type;
+	switch(format)
+	{
+		case R_IF_R_UINT8 :
+			output_format = GL_RED;
+			data_type = GL_UNSIGNED_BYTE;
+		break;
+		case R_IF_RG_UINT8 :
+			output_format = GL_RG;
+			data_type = GL_UNSIGNED_BYTE;
+		break;
+		case R_IF_RGB_UINT8 :
+			output_format = GL_RGB;
+			data_type = GL_UNSIGNED_BYTE;
+		break;
+		case R_IF_RGBA_UINT8 :
+			output_format = GL_RGBA;
+			data_type = GL_UNSIGNED_BYTE;
+		break;
+		case R_IF_R_FLOAT16 :
+			output_format = GL_RED;
+			data_type = GL_FLOAT;
+		break;
+		case R_IF_RG_FLOAT16 :
+			output_format = GL_RG;
+			data_type = GL_FLOAT;
+		break;
+		case R_IF_RGB_FLOAT16 :
+			output_format = GL_RGB;
+			data_type = GL_FLOAT;
+		break;
+		case R_IF_RGBA_FLOAT16 :
+			output_format = GL_RGBA;
+			data_type = GL_FLOAT;
+		break;
+		case R_IF_R_FLOAT32 :
+			output_format = GL_RED;
+			data_type = GL_FLOAT;
+		break;
+		case R_IF_RG_FLOAT32 :
+			output_format = GL_RG;
+			data_type = GL_FLOAT;
+		break;
+		case R_IF_RGB_FLOAT32 :
+			output_format = GL_RGB;
+			data_type = GL_FLOAT;
+		break;
+		case R_IF_RGBA_FLOAT32 :
+			output_format = GL_RGBA;
+			data_type = GL_FLOAT;
+		break;
+		default :
+			printf("Reliquish Error: Calling r_texture_update with ilegal format : %u\n", format);
+			exit(0);
+		break;
+	}
+	r_glActiveTextureARB(GL_TEXTURE0_ARB);
+	glBindTexture(GL_TEXTURE_2D, texture_id);
+	glGetTexImage(GL_TEXTURE_2D, 0, output_format, data_type, output_data);
+}
 
 void r_texture_free(uint texture_id)
 {	
+	union {void *pointer; uint32 texture_id;}tracker_handle;
+	tracker_handle.pointer = NULL;
 	r_framebuffer_debug_image_allocated--;
+	r_draw_asset_untrack(RELINQUISH_AT_TEXTURE, tracker_handle.pointer, 0);
 	glDeleteTextures(1, &texture_id);
 }
 

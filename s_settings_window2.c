@@ -1,7 +1,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include "seduce.h"
-#include "s_draw_3d.h"
+
 
 
 #define SEDUCE_WIDGET_LIST_ELEMENT_SIZE 0.02
@@ -17,6 +17,14 @@ float seduce_widget_list_element_size(SeducePanelElement *element, float time, f
 			return SEDUCE_WIDGET_LIST_ELEMENT_SIZE;
 		break;
 		case SEDUCE_PET_TRIGGER :
+			*left = seduce_text_line_length(NULL, SEDUCE_T_SIZE, SEDUCE_T_SPACE, element->text, -1) + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 0.5 + SEDUCE_T_SIZE;
+			return SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5;
+		break;
+		case SEDUCE_PET_ICON_BOOLEAN :
+			*left = SEDUCE_WIDGET_LIST_ELEMENT_SIZE;
+			return SEDUCE_WIDGET_LIST_ELEMENT_SIZE;
+		break;
+		case SEDUCE_PET_ICON_TRIGGER :
 			*left = SEDUCE_WIDGET_LIST_ELEMENT_SIZE;
 			return SEDUCE_WIDGET_LIST_ELEMENT_SIZE;
 		break;
@@ -46,7 +54,7 @@ float seduce_widget_list_element_size(SeducePanelElement *element, float time, f
 		break;
 		case SEDUCE_PET_2D_POS :
 			*left = SEDUCE_WIDGET_LIST_ELEMENT_SIZE;
-			return SEDUCE_WIDGET_LIST_ELEMENT_SIZE;
+			return SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 8;
 		break;
 		case SEDUCE_PET_3D_POS :
 			*left = SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3;
@@ -97,8 +105,8 @@ float seduce_widget_list_element_size(SeducePanelElement *element, float time, f
 			return SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 4.5;
 		break;
 		case SEDUCE_PET_COLOR_RGBA :
-			*left = SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 6 + 0.05;
-			return SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 6;
+			*left = SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 6.0 + 0.05;
+			return SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 6.0;
 		break;
 		case SEDUCE_PET_TIME :
 			*left = SEDUCE_WIDGET_LIST_ELEMENT_SIZE;
@@ -133,16 +141,21 @@ float seduce_widget_list_element_size(SeducePanelElement *element, float time, f
 			return SEDUCE_WIDGET_LIST_ELEMENT_SIZE;
 		break;
 		case SEDUCE_PET_OK_CANCEL :
-			*left = SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5;
+			*left = SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 5;
 			return SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5;
+		break;
+		case SEDUCE_PET_CLOSE_WINDOW :
+			*left = 0;
+			return 0;
 		break;
 	}
 	return 0;
 }
 
 
-void seduce_widget_list_text_line(SeduceLineObject *object, float x, float y, float size, float length, float *color, float time)
+void seduce_widget_list_text_line(BInputState *input, void *id, SeduceLineObject *object, float x, float y, float size, float length, float *color, float time)
 {
+	seduce_element_add_rectangle(input, id, 0, x - size * 0.5, y - size, length + size, size);
 	size *= 0.5;
 	y -= size;
 	seduce_primitive_circle_add_3d(object,
@@ -178,7 +191,7 @@ void seduce_widget_list_text_line(SeduceLineObject *object, float x, float y, fl
 
 void seduce_widget_list_done_func(void *user, char *text)
 {
-	uint i;
+	uint i; 
 	char *t;
 	t = user;
 	for(i = 0; text[i] != 0 && i < 64 - 1; i++)
@@ -189,9 +202,9 @@ void seduce_widget_list_done_func(void *user, char *text)
 uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elements, uint element_count, float time, char *title, float *color, float *background_color, SeduceWidgetListStyle style)
 {
 	SeduceLineObject *object;
-	float y_text, y_widget, f, length, margin, text_size = 0, element_width, element_right, element_left, element_size, c[4] = {0.0, 0.0, 0.0, 1}, *text_color, space_time, vec[2];
+	float x = 0.0, y_text, y_widget, f, length, margin, text_size = 0, element_width, element_right, element_left, element_size, text_placement, c[4] = {0.0, 0.0, 0.0, 1}, white[4] = {0.6, 0.6, 0.6, 1},  *text_color, space_time, vec[2];
 	uint8 *id_fragmented;
-	uint i;
+	uint i, j;
 
 	float size = SEDUCE_T_SIZE;
 
@@ -210,20 +223,30 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 		if(element_right < element_width)	
 			element_right = element_width;
 		length += element_size + SEDUCE_WIDGET_LIST_SPACING;
-		f = seduce_text_line_length(NULL, SEDUCE_T_SIZE,  SEDUCE_T_SPACE, elements[i].text, -1) + element_size * 0.5 + SEDUCE_T_SIZE * 2;
-		if(f > text_size)
-			text_size = f;
+		if(elements[i].type != SEDUCE_PET_OK_CANCEL && elements[i].type != SEDUCE_PET_TRIGGER)
+		{
+			f = seduce_text_line_length(NULL, SEDUCE_T_SIZE,  SEDUCE_T_SPACE, elements[i].text, -1) + element_size * 0.5 + SEDUCE_T_SIZE * 2;
+			if(f > text_size)
+				text_size = f;
+		}
+		if(elements[i].type == SEDUCE_PET_SECTION_START && !elements[i].param.section)
+			while(i < element_count && elements[i].type != SEDUCE_PET_SECTION_END)		
+				i++;	
 	}
 	element_left *= 0.5;
 	length -= SEDUCE_WIDGET_LIST_SPACING;
 	margin = SEDUCE_WIDGET_LIST_MARGIN;
 	if(title != NULL)
 	{
+
 		if(background_color != NULL)
 			length += margin * 0.5 + SEDUCE_T_SIZE * 1.5;
 		else
 			length += SEDUCE_WIDGET_LIST_SPACING + SEDUCE_T_SIZE * 1.5;
-	}
+
+		f = SEDUCE_WIDGET_LIST_SPACING + SEDUCE_T_SIZE * 4;
+	}else
+		f = 0;
 	time = f_smooth_stepf(time);
 	y_text = length / 2.0;
 	y_widget = length / 2.0 * time;
@@ -252,16 +275,18 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 													-text_size - margin, length * -0.5 - margin, 0, 
 													text_size + element_right + 2.0 * margin, length + 2.0 * margin,
 													background_color[0], background_color[1], background_color[2], background_color[3]);
+				element_left = text_size;
 			}else
 			{
 				margin = SEDUCE_WIDGET_LIST_SPACING;
 				seduce_background_shadow_square_add(object,
-													-element_left - margin, length * -0.5 - margin,
+													-element_left - margin, f + length * -0.5 - margin,
 													element_left + element_right + 2.0 * margin, length + 2.0 * margin, 0.03);
 				seduce_background_square_add(object, id, 0,
-													-element_left - margin, length * -0.5 - margin, 0, 
+													-element_left - margin, f + length * -0.5 - margin, 0, 
 													element_left + element_right + 2.0 * margin, length + 2.0 * margin,
 													background_color[0], background_color[1], background_color[2], background_color[3]);
+				text_size = element_left;
 			}
 			seduce_primitive_surface_draw(input, object, time);
 			seduce_primitive_background_object_free(object);
@@ -291,9 +316,13 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 		if(title != NULL)
 		{
 			if(background_color != NULL)
-				seduce_text_line_draw(NULL, ((element_right - text_size) - seduce_text_line_length(NULL, SEDUCE_T_SIZE * 1.5,  SEDUCE_T_SPACE * 6.0, title, -1)) * 0.5, y_text, SEDUCE_T_SIZE * 1.5, SEDUCE_T_SPACE * 6.0, title, color[0], color[1], color[2], color[3], -1);
-			else
-				seduce_text_line_draw(NULL, seduce_text_line_length(NULL, SEDUCE_T_SIZE * 1.5,  SEDUCE_T_SPACE * 6.0, title, -1) * -0.5, y_text, SEDUCE_T_SIZE * 1.5, SEDUCE_T_SPACE * 6.0, title, color[0], color[1], color[2], color[3], -1);
+			{
+				if(style == SEDUCE_WLS_PANEL)
+					seduce_text_line_draw(NULL, x + ((element_right - text_size) - seduce_text_line_length(NULL, SEDUCE_T_SIZE * 1.5,  SEDUCE_T_SPACE * 6.0, title, -1)) * 0.5, y_text, SEDUCE_T_SIZE * 1.5, SEDUCE_T_SPACE * 6.0, title, color[0], color[1], color[2], color[3], -1);
+				else
+					seduce_text_line_draw(NULL, x + (-element_left + element_right) * 0.5 - seduce_text_line_length(NULL, SEDUCE_T_SIZE * 1.5,  SEDUCE_T_SPACE * 6.0, title, -1) * 0.5, y_text, SEDUCE_T_SIZE * 1.5, SEDUCE_T_SPACE * 6.0, title, color[0], color[1], color[2], color[3], -1);
+			}else
+				seduce_text_line_draw(NULL, x + seduce_text_line_length(NULL, SEDUCE_T_SIZE * 1.5,  SEDUCE_T_SPACE * 6.0, title, -1) * -0.5, y_text, SEDUCE_T_SIZE * 1.5, SEDUCE_T_SPACE * 6.0, title, color[0], color[1], color[2], color[3], -1);
 		}
 	/*
 		f = seduce_text_line_length(NULL, 1.0,  SEDUCE_T_SPACE * 3.0, title, -1);
@@ -304,9 +333,9 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 	
 		r_matrix_pop(NULL);*/
 	}
-	if(title != NULL)
+	if(title != NULL/* && style == SEDUCE_WLS_PANEL*/)
 	{
-		if(background_color != NULL)
+		if(background_color != NULL && style == SEDUCE_WLS_PANEL)
 		{
 			y_text -= margin * 0.5 + SEDUCE_T_SIZE * 1.5;
 			y_widget -= margin * 0.5 + SEDUCE_T_SIZE * 1.5;
@@ -319,16 +348,22 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 
 	for(i = 0; i < element_count; i++)
 	{
+		if(elements[i].type == SEDUCE_PET_SECTION_END)
+		{
+			x -= SEDUCE_T_SIZE * 4;	
+			continue;
+		}
 		if(input->mode == BAM_DRAW)	
 			seduce_tool_tip(input, &elements[i], elements[i].text, elements[i].description);
 		element_size = seduce_widget_list_element_size(&elements[i], time, &element_width);
+		text_placement = element_size * 0.5;
 		switch(elements[i].type)
 		{
 			case SEDUCE_PET_BOOLEAN :
 				if(input->mode == BAM_DRAW)
 				{
 					seduce_primitive_circle_add_3d(object,
-											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
+											x, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 											0, 1, 0,
 											0, 0, 1,
 											element_size * 0.5 + (1.0 - time) * f_randf(i + 1) * 0.4,
@@ -338,7 +373,7 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 											color[0], color[1], color[2], color[3]);
 					if(elements[i].param.active)
 						seduce_primitive_circle_add_3d(object,
-												0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
+												x, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 												0, 1, 0,
 												0, 0, 1,
 												element_size * 0.3 + (1.0 - time) * f_randf(i + 1) * 0.4,
@@ -347,14 +382,26 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 												color[0], color[1], color[2], color[3],
 												color[0], color[1], color[2], color[3]);
 				}
-				if(seduce_widget_button_invisible(input, &elements[i], 0, y_widget - element_size * 0.5, element_size, TRUE))
+				if(seduce_widget_button_invisible(input, &elements[i], x, y_widget - element_size * 0.5, element_size, TRUE))
 				{
 					elements[i].param.active = !elements[i].param.active;
 					return i;
 				}
 			break;
 			case SEDUCE_PET_TRIGGER :
+				
+				if(style == SEDUCE_WLS_PANEL)
+					f = ((text_size * 0.5 + element_right));
+				else
+					f = ((text_size * 0.5 + element_right));
 				if(input->mode == BAM_DRAW)
+					seduce_widget_list_text_line(input, &elements[i], object, x - text_size + element_size * 0.5, y_widget, element_size + (1.0 - time) * f_randf(i + 1) * 0.4, text_size + element_right - element_size, color, time);
+				if(seduce_text_button(input, &elements[i], x - text_size + element_size * 0.5 + (text_size + element_right - element_size) * 0.5, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, 0.5, SEDUCE_T_SIZE,  SEDUCE_T_SPACE, elements[i].text, color[0], color[1], color[2], color[3], 1.0 - color[0], 1.0 - color[1], 1.0 - color[2], color[3]))			
+				{
+					elements[i].param.trigger = TRUE;
+					return i;
+				}
+			/*	if(input->mode == BAM_DRAW)
 					seduce_primitive_circle_add_3d(object,
 											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 											0, 1, 0,
@@ -366,35 +413,48 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 											color[0], color[1], color[2], color[3]);
 				elements[i].param.trigger =	seduce_widget_button_invisible(input, &elements[i], 0, y_widget - element_size * 0.5, element_size, TRUE);
 				if(elements[i].param.trigger)
+					return i;*/
+			break;
+			case SEDUCE_PET_ICON_BOOLEAN :
+				if(seduce_widget_toggle_icon(input, &elements[i], &elements[i].param.icon_boolean.toggle, elements[i].param.icon_boolean.icon, x, y_text - element_size * 0.5, element_size, time))
 					return i;
+		//		if(seduce_widget_button_icon(input, &elements[i], elements[i].param.icon_boolean.icon, 0, y_text - element_size * 0.5, element_size, time, elements[i].param.icon_boolean.color)) 
+		//			elements[i].param.icon_boolean.toggle = !elements[i].param.icon_boolean.toggle;
+			break;
+			case SEDUCE_PET_ICON_TRIGGER :
+				if(seduce_widget_button_icon(input, &elements[i], elements[i].param.icon_trigger.icon, x, y_text - element_size * 0.5, element_size, time, elements[i].param.icon_trigger.color))
+				{
+					elements[i].param.icon_trigger.active;
+					return i;
+				}
 			break;
 			case SEDUCE_PET_INTEGER :
 				if(input->mode == BAM_DRAW)
-					seduce_widget_list_text_line(object, 0, y_widget, element_size + (1.0 - time) * f_randf(i + 1) * 0.4, 0.1, color, time);
-				if(S_TIS_DONE == seduce_text_edit_int(input, &elements[i], NULL, &elements[i].param.integer, 0, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
+					seduce_widget_list_text_line(input, &elements[i], object, x, y_widget, element_size + (1.0 - time) * f_randf(i + 1) * 0.4, 0.1, color, time);
+				if(S_TIS_DONE == seduce_text_edit_int(input, &elements[i], NULL, &elements[i].param.integer, x, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
 					return i;
 			break;
 			case SEDUCE_PET_UNSIGNED_INTEGER :
 				if(input->mode == BAM_DRAW)
-					seduce_widget_list_text_line(object, 0, y_widget, element_size + (1.0 - time) * f_randf(i + 1) * 0.4, 0.1, color, time);
-				if(S_TIS_DONE == seduce_text_edit_uint(input, &elements[i], NULL, &elements[i].param.uinteger, 0, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
+					seduce_widget_list_text_line(input, &elements[i], object, x, y_widget, element_size + (1.0 - time) * f_randf(i + 1) * 0.4, 0.1, color, time);
+				if(S_TIS_DONE == seduce_text_edit_uint(input, &elements[i], NULL, &elements[i].param.uinteger, x, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
 					return i;
 			break;
 			case SEDUCE_PET_INTEGER_BOUND :
 				if(input->mode == BAM_DRAW)
-					seduce_widget_list_text_line(object, 0, y_widget, element_size + (1.0 - time) * f_randf(i + 1) * 0.4, 0.1, color, time);
-				if(S_TIS_DONE == seduce_text_edit_int(input, &elements[i], NULL, &elements[i].param.integer, 0, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
+					seduce_widget_list_text_line(input, &elements[i], object, x, y_widget, element_size + (1.0 - time) * f_randf(i + 1) * 0.4, 0.1, color, time);
+				if(S_TIS_DONE == seduce_text_edit_int(input, &elements[i], NULL, &elements[i].param.integer, x, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
 					return i;
 			break;
 			case SEDUCE_PET_REAL :
 				if(input->mode == BAM_DRAW)
-					seduce_widget_list_text_line(object, 0, y_widget, element_size + (1.0 - time) * f_randf(i + 1) * 0.4, 0.1, color, time);
-				if(S_TIS_DONE == seduce_text_edit_double(input, &elements[i], NULL, &elements[i].param.real.value, 0, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
+					seduce_widget_list_text_line(input, &elements[i], object, x, y_widget, element_size + (1.0 - time) * f_randf(i + 1) * 0.4, 0.1, color, time);
+				if(S_TIS_DONE == seduce_text_edit_double(input, &elements[i], NULL, &elements[i].param.real.value, x, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
 					return i;
 			break;
 			case SEDUCE_PET_REAL_BOUND :
 				f =	elements[i].param.real.value;
-				if(seduce_widget_slider_radial(input, &elements[i], &f, 0, y_text - element_size * 0.5, element_size, 1, elements[i].param.real.min, elements[i].param.real.max, time, color) && input->mode == BAM_EVENT)
+				if(seduce_widget_slider_radial(input, &elements[i], &f, x, y_text - element_size * 0.5, element_size, 1, elements[i].param.real.min, elements[i].param.real.max, time, color) && input->mode == BAM_EVENT)
 				{
 					elements[i].param.real.value = f;
 					return i;
@@ -402,14 +462,26 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 			break;
 			case SEDUCE_PET_RADIUS :
 				f =	elements[i].param.real.value;
-				if(seduce_widget_slider_radius(input, &elements[i], &f, 0, y_text - element_size * 0.5, element_size, time, color) && input->mode == BAM_EVENT)
+				if(seduce_widget_slider_radius(input, &elements[i], &f, x, y_text - element_size * 0.5, element_size, time, color) && input->mode == BAM_EVENT)
 				{
 					elements[i].param.real.value = f;
 					return i;
 				}
 			break;
 			case SEDUCE_PET_2D_POS :
-				if(input->mode == BAM_DRAW)
+
+			//	STypeInState seduce_widget_slider_square(BInputState *input, void *id, float *values, float pos_x, float pos_y, float size_x, float size_y, float size, float scale, float time, float *color)
+				vec[0] = elements[i].param.vector[0];
+				vec[1] = elements[i].param.vector[1];
+				if(seduce_widget_slider_square(input, &elements[i], vec, x + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * -0.5, y_text - element_size, element_size, element_size, SEDUCE_WIDGET_LIST_ELEMENT_SIZE, 1, time, color) && input->mode == BAM_EVENT)
+				{
+					elements[i].param.vector[0] = vec[0];
+					elements[i].param.vector[1] = vec[1];
+					return i;
+				}
+				text_placement = SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 0.5;
+
+			/*	if(input->mode == BAM_DRAW)
 					seduce_primitive_circle_add_3d(object,
 											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 											0, 1, 0,
@@ -418,12 +490,12 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 											0, 1,
 											y_widget + f_randnf(i + 2) * time * 0.1, element_size * 5 + (1.0 - time) * f_randf(i + 1),
 											color[0], color[1], color[2], color[3],
-											color[0], color[1], color[2], color[3]);
+											color[0], color[1], color[2], color[3]);*/
 			break;
 			case SEDUCE_PET_3D_POS :
 				if(input->mode == BAM_DRAW)
 					seduce_primitive_circle_add_3d(object,
-											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
+											x, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 											0, 1, 0,
 											0, 0, 1,
 											element_size * 0.5 + (1.0 - time) * f_randf(i + 1) * 0.4,
@@ -435,7 +507,7 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 			case SEDUCE_PET_4D_POS :
 				if(input->mode == BAM_DRAW)
 					seduce_primitive_circle_add_3d(object,
-											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
+											x, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 											0, 1, 0,
 											0, 0, 1,
 											element_size * 0.5 + (1.0 - time) * f_randf(i + 1) * 0.4,
@@ -447,7 +519,7 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 			case SEDUCE_PET_QUATERNION :
 				if(input->mode == BAM_DRAW)
 					seduce_primitive_circle_add_3d(object,
-											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
+											x, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 											0, 1, 0,
 											0, 0, 1,
 											element_size * 0.5 + (1.0 - time) * f_randf(i + 1) * 0.4,
@@ -459,7 +531,7 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 			case SEDUCE_PET_2D_NORMAL :
 				if(input->mode == BAM_DRAW)
 					seduce_primitive_circle_add_3d(object,
-											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
+											x, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 											0, 1, 0,
 											0, 0, 1,
 											element_size * 0.5 + (1.0 - time) * f_randf(i + 1) * 0.4,
@@ -471,7 +543,7 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 			case SEDUCE_PET_3D_NORMAL :
 				if(input->mode == BAM_DRAW)
 					seduce_primitive_circle_add_3d(object,
-											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
+											x, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 											0, 1, 0,
 											0, 0, 1,
 											element_size * 0.5 + (1.0 - time) * f_randf(i + 1) * 0.4,
@@ -483,7 +555,7 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 			case SEDUCE_PET_2X2MATRIX :
 				if(input->mode == BAM_DRAW)
 					seduce_primitive_circle_add_3d(object,
-											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
+											x, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 											0, 1, 0,
 											0, 0, 1,
 											element_size * 0.5 + (1.0 - time) * f_randf(i + 1) * 0.4,
@@ -495,7 +567,7 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 			case SEDUCE_PET_3X3MATRIX :
 				if(input->mode == BAM_DRAW)
 					seduce_primitive_circle_add_3d(object,
-											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
+											x, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 											0, 1, 0,
 											0, 0, 1,
 											element_size * 0.5 + (1.0 - time) * f_randf(i + 1) * 0.4,
@@ -507,7 +579,7 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 			case SEDUCE_PET_4X4MATRIX :
 				if(input->mode == BAM_DRAW)
 					seduce_primitive_circle_add_3d(object,
-											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
+											x, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 											0, 1, 0,
 											0, 0, 1,
 											element_size * 0.5 + (1.0 - time) * f_randf(i + 1) * 0.4,
@@ -518,20 +590,20 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 			break;
 			case SEDUCE_PET_TEXT :
 				if(input->mode == BAM_DRAW)
-					seduce_widget_list_text_line(object, 0, y_widget, element_size + (1.0 - time) * f_randf(i + 1) * 0.4, 0.2, color, time);
-				if(S_TIS_DONE == seduce_text_edit_line(input, &elements[i], NULL, elements[i].param.text, 64, 0, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, 0.2, SEDUCE_T_SIZE, "", TRUE, seduce_widget_list_done_func, elements[i].param.text, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
+					seduce_widget_list_text_line(input, &elements[i], object, x, y_widget, element_size + (1.0 - time) * f_randf(i + 1) * 0.4, 0.2, color, time);
+				if(S_TIS_DONE == seduce_text_edit_line(input, &elements[i], NULL, elements[i].param.text, 64, x, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, 0.2, SEDUCE_T_SIZE, "", TRUE, seduce_widget_list_done_func, elements[i].param.text, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
 					return i;
 			break;
 			case SEDUCE_PET_PASSWORD :
 				if(input->mode == BAM_DRAW)
-					seduce_widget_list_text_line(object, 0, y_widget, element_size + (1.0 - time) * f_randf(i + 1) * 0.4, 0.2, color, time);
-				if(S_TIS_DONE == seduce_text_edit_obfuscated(input, &elements[i], elements[i].param.text, 64, 0, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, 0.2, SEDUCE_T_SIZE, "", TRUE, seduce_widget_list_done_func, elements[i].param.text, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
+					seduce_widget_list_text_line(input, &elements[i], object, x, y_widget, element_size + (1.0 - time) * f_randf(i + 1) * 0.4, 0.2, color, time);
+				if(S_TIS_DONE == seduce_text_edit_obfuscated(input, &elements[i], elements[i].param.text, 64, x, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, 0.2, SEDUCE_T_SIZE, "", TRUE, seduce_widget_list_done_func, elements[i].param.text, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
 					return i;
 			break;
 			case SEDUCE_PET_TEXT_BUFFER :
 				if(input->mode == BAM_DRAW)
 					seduce_primitive_circle_add_3d(object,
-											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
+											x, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 											0, 1, 0,
 											0, 0, 1,
 											element_size * 0.5 + (1.0 - time) * f_randf(i + 1) * 0.4,
@@ -556,7 +628,7 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 					}
 					if(input->mode == BAM_DRAW)
 						seduce_primitive_circle_add_3d(object,
-												0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
+												x, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 												0, 1, 0,
 												0, 0, 1,
 												element_size * 0.5 + (1.0 - time) * f_randf(i + 1) * 0.4,
@@ -568,52 +640,57 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 					id_fragmented  = (uint8 *)&elements[i];
 					x_rot = sin((float)0 / widget_count * PI * 2.0) * radius;
 					y_rot = cos((float)0 / widget_count * PI * 2.0) * radius + y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7;
-					if(seduce_widget_color_triangle_radial(input, &id_fragmented[0], elements[i].param.color, x_rot, y_rot, SEDUCE_WIDGET_LIST_ELEMENT_SIZE, 0.4, time))
-						return i;
+					if(seduce_widget_color_triangle_radial(input, &id_fragmented[0], elements[i].param.color, x + x_rot, y_rot, SEDUCE_WIDGET_LIST_ELEMENT_SIZE, 0.4, time))
+						if(input->mode == BAM_EVENT)
+							return i;
 					x_rot = sin((float)1 / widget_count * PI * 2.0) * radius;
 					y_rot = cos((float)1 / widget_count * PI * 2.0) * radius + y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7;
-					if(seduce_widget_color_wheel_radial(input, &id_fragmented[1], elements[i].param.color, x_rot, y_rot, SEDUCE_WIDGET_LIST_ELEMENT_SIZE, 0.4, time))
-						return i;
+					if(seduce_widget_color_wheel_radial(input, &id_fragmented[1], elements[i].param.color, x + x_rot, y_rot, SEDUCE_WIDGET_LIST_ELEMENT_SIZE, 0.4, time))
+						if(input->mode == BAM_EVENT)
+							return i;
 					x_rot = sin((float)2 / widget_count * PI * 2.0) * radius;
 					y_rot = cos((float)2 / widget_count * PI * 2.0) * radius + y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7;
-					if(seduce_widget_color_square_radial(input, &id_fragmented[2], elements[i].param.color, 0, x_rot, y_rot, SEDUCE_WIDGET_LIST_ELEMENT_SIZE, 0.4, time))
-						return i;
+					if(seduce_widget_color_square_radial(input, &id_fragmented[2], elements[i].param.color, 0, x + x_rot, y_rot, SEDUCE_WIDGET_LIST_ELEMENT_SIZE, 0.4, time))
+						if(input->mode == BAM_EVENT)
+							return i;
 					x_rot = sin((float)3 / widget_count * PI * 2.0) * radius;
 					y_rot = cos((float)3 / widget_count * PI * 2.0) * radius + y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7;
-					if(seduce_widget_color_square_radial(input, &id_fragmented[3], elements[i].param.color, 1, x_rot, y_rot, SEDUCE_WIDGET_LIST_ELEMENT_SIZE, 0.4, time))
-						return i;
+					if(seduce_widget_color_square_radial(input, &id_fragmented[3], elements[i].param.color, 1, x + x_rot, y_rot, SEDUCE_WIDGET_LIST_ELEMENT_SIZE, 0.4, time))
+						if(input->mode == BAM_EVENT)
+							return i;
 					x_rot = sin((float)4 / widget_count * PI * 2.0) * radius;
 					y_rot = cos((float)4 / widget_count * PI * 2.0) * radius + y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7;
-					if(seduce_widget_color_square_radial(input, &id_fragmented[4], elements[i].param.color, 2, x_rot, y_rot, SEDUCE_WIDGET_LIST_ELEMENT_SIZE, 0.4, time))
-						return i;
+					if(seduce_widget_color_square_radial(input, &id_fragmented[4], elements[i].param.color, 2, x + x_rot, y_rot, SEDUCE_WIDGET_LIST_ELEMENT_SIZE, 0.4, time))
+						if(input->mode == BAM_EVENT)
+							return i;
 					
 					
 					if(elements[i].type == SEDUCE_PET_COLOR_RGB)
 					{
 
 						d = elements[i].param.color[0];
-						if(S_TIS_DONE == seduce_text_edit_double(input, &id_fragmented[5], NULL, &d, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 2.75, y_widget - element_size * 0.5 + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.75 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
+						if(S_TIS_DONE == seduce_text_edit_double(input, &id_fragmented[5], NULL, &d, x + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 2.75, y_widget - element_size * 0.5 + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.75 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
 						{
 							elements[i].param.color[0] = d;
 							return i;
 						}
 						d = elements[i].param.color[1];
-						if(S_TIS_DONE == seduce_text_edit_double(input, &id_fragmented[6], NULL, &d, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.25, y_widget - element_size * 0.5 + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 0 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
+						if(S_TIS_DONE == seduce_text_edit_double(input, &id_fragmented[6], NULL, &d, x + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.25, y_widget - element_size * 0.5 + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 0 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
 						{
 							elements[i].param.color[1] = d;
 							return i;
 						}
 						d = elements[i].param.color[2];
-						if(S_TIS_DONE == seduce_text_edit_double(input, &id_fragmented[7], NULL, &d, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 2.75, y_widget - element_size * 0.5 - SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.75 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
+						if(S_TIS_DONE == seduce_text_edit_double(input, &id_fragmented[7], NULL, &d, x + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 2.75, y_widget - element_size * 0.5 - SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.75 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
 						{
 							elements[i].param.color[2] = d;
 							return i;
 						}
 						if(input->mode == BAM_DRAW)
 						{
-							seduce_widget_list_text_line(object, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.0, y_widget - element_size * 0.5 + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 2.5, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5 + (1.0 - time) * f_randf(i + 1) * 0.4, 0.05, color, time);							
-							seduce_widget_list_text_line(object, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.5, y_widget - element_size * 0.5 + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 0.75, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5 + (1.0 - time) * f_randf(i + 1) * 0.4, 0.05, color, time);							
-							seduce_widget_list_text_line(object, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.0, y_widget - element_size * 0.5 - SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.0, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5 + (1.0 - time) * f_randf(i + 1) * 0.4, 0.05, color, time);							
+							seduce_widget_list_text_line(input, &id_fragmented[5], object, x + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.0, y_widget - element_size * 0.5 + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 2.5, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5 + (1.0 - time) * f_randf(i + 1) * 0.4, 0.05, color, time);							
+							seduce_widget_list_text_line(input, &id_fragmented[6], object, x + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.5, y_widget - element_size * 0.5 + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 0.75, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5 + (1.0 - time) * f_randf(i + 1) * 0.4, 0.05, color, time);							
+							seduce_widget_list_text_line(input, &id_fragmented[7], object, x + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.0, y_widget - element_size * 0.5 - SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.0, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5 + (1.0 - time) * f_randf(i + 1) * 0.4, 0.05, color, time);							
 						}
 					}else
 					{
@@ -621,81 +698,50 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 						y_rot = cos((float)5 / widget_count * PI * 2.0) * radius + y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7;
 
 						f = elements[i].param.color[3];
-						if(seduce_widget_slider_radial(input, &id_fragmented[5], &f, x_rot, y_rot, SEDUCE_WIDGET_LIST_ELEMENT_SIZE, 1, 0, 1, time, color))
+						if(seduce_widget_slider_radial(input, &id_fragmented[5], &f, x + x_rot, y_rot, SEDUCE_WIDGET_LIST_ELEMENT_SIZE, 1, 0, 1, time, color))
 						{
 							elements[i].param.color[3] = f;
-							return i;
+							if(input->mode == BAM_EVENT)
+								return i;
 						}
 						d = elements[i].param.color[0];
-						if(S_TIS_DONE == seduce_text_edit_double(input, &id_fragmented[6], NULL, &d, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.0, y_widget - element_size * 0.5 + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 2.625 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
+						if(S_TIS_DONE == seduce_text_edit_double(input, &id_fragmented[6], NULL, &d, x + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.0, y_widget - element_size * 0.5 + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 2.625 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
 						{
 							elements[i].param.color[0] = d;
 							return i;
 						}
 						d = elements[i].param.color[1];
-						if(S_TIS_DONE == seduce_text_edit_double(input, &id_fragmented[7], NULL, &d, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.75, y_widget - element_size * 0.5 + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 0.875 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
+						if(S_TIS_DONE == seduce_text_edit_double(input, &id_fragmented[7], NULL, &d, x + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.75, y_widget - element_size * 0.5 + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 0.875 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
 						{
 							elements[i].param.color[1] = d;
 							return i;
 						}
 						d = elements[i].param.color[2];
-						if(S_TIS_DONE == seduce_text_edit_double(input, &id_fragmented[8], NULL, &d, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.75, y_widget - element_size * 0.5 - SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 0.875 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
+						if(S_TIS_DONE == seduce_text_edit_double(input, &id_fragmented[8], NULL, &d, x + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.75, y_widget - element_size * 0.5 - SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 0.875 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
 						{
 							elements[i].param.color[2] = d;
 							return i;
 						}
 						d = elements[i].param.color[3];
-						if(S_TIS_DONE == seduce_text_edit_double(input, &id_fragmented[9], NULL, &d, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.0, y_widget - element_size * 0.5 - SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 2.625 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
+						if(S_TIS_DONE == seduce_text_edit_double(input, &id_fragmented[9], NULL, &d, x + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.0, y_widget - element_size * 0.5 - SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 2.625 - SEDUCE_T_SIZE * 0.75, 0.1, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], color[3], text_color[0], text_color[1], text_color[2], text_color[3]))
 						{
 							elements[i].param.color[3] = d;
 							return i;
 						}
 						if(input->mode == BAM_DRAW)
 						{							
-							seduce_widget_list_text_line(object, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.25, y_widget - element_size * 0.5 + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * (2.5 + 0.875), SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5 + (1.0 - time) * f_randf(i + 1) * 0.4, 0.05, color, time);							
-							seduce_widget_list_text_line(object, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 4.0, y_widget - element_size * 0.5 + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * (0.75 + 0.875), SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5 + (1.0 - time) * f_randf(i + 1) * 0.4, 0.05, color, time);							
-							seduce_widget_list_text_line(object, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 4.0, y_widget - element_size * 0.5 - SEDUCE_WIDGET_LIST_ELEMENT_SIZE * (1.0 - 0.875), SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5 + (1.0 - time) * f_randf(i + 1) * 0.4, 0.05, color, time);							
-							seduce_widget_list_text_line(object, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.25, y_widget - element_size * 0.5 - SEDUCE_WIDGET_LIST_ELEMENT_SIZE * (2.75 - 0.875), SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5 + (1.0 - time) * f_randf(i + 1) * 0.4, 0.05, color, time);							
+							seduce_widget_list_text_line(input, &id_fragmented[6], object, x + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.25, y_widget - element_size * 0.5 + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * (2.5 + 0.875), SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5 + (1.0 - time) * f_randf(i + 1) * 0.4, 0.05, color, time);							
+							seduce_widget_list_text_line(input, &id_fragmented[7], object, x + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 4.0, y_widget - element_size * 0.5 + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * (0.75 + 0.875), SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5 + (1.0 - time) * f_randf(i + 1) * 0.4, 0.05, color, time);							
+							seduce_widget_list_text_line(input, &id_fragmented[8], object, x + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 4.0, y_widget - element_size * 0.5 - SEDUCE_WIDGET_LIST_ELEMENT_SIZE * (1.0 - 0.875), SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5 + (1.0 - time) * f_randf(i + 1) * 0.4, 0.05, color, time);							
+							seduce_widget_list_text_line(input, &id_fragmented[9], object, x + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.25, y_widget - element_size * 0.5 - SEDUCE_WIDGET_LIST_ELEMENT_SIZE * (2.75 - 0.875), SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5 + (1.0 - time) * f_randf(i + 1) * 0.4, 0.05, color, time);							
 						}
 					}
 				}
 			break;
-				if(input->mode == BAM_DRAW)
-				{
-					float x_rot, y_rot;
-					uint j;
-					seduce_primitive_circle_add_3d(object,
-											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
-											0, 1, 0,
-											0, 0, 1,
-											element_size * 0.5 + (1.0 - time) * f_randf(i + 1) * 0.4,
-											0, 1,
-											y_widget + f_randnf(i + 2) * time * 0.1, element_size * 5 + (1.0 - time) * f_randf(i + 1),
-											color[0], color[1], color[2], color[3],
-											color[0], color[1], color[2], color[3]);
-					for(j = 0; j < 6; j++)
-					{
-						x_rot = sin((float)j / 6.0 * PI * 2.0) * SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5;
-						y_rot = cos((float)j / 6.0 * PI * 2.0) * SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5;
-						seduce_primitive_circle_add_3d(object,
-											x_rot, y_rot + y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
-											0, 1, 0,
-											0, 0, 1,
-											SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 0.5 + (1.0 - time) * f_randf(i + 1) * 0.4,
-											0, 1,
-											y_widget + f_randnf(i + 2) * time * 0.1, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 5 + (1.0 - time) * f_randf(i + 1),
-											color[0], color[1], color[2], color[3],
-											color[0], color[1], color[2], color[3]);
-					}		
-					seduce_widget_list_text_line(object, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.0, y_widget - element_size * 0.5 + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 2.5, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5 + (1.0 - time) * f_randf(i + 1) * 0.4, 0.05, color, time);							
-					seduce_widget_list_text_line(object, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.5, y_widget - element_size * 0.5 + SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 0.75, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5 + (1.0 - time) * f_randf(i + 1) * 0.4, 0.05, color, time);							
-					seduce_widget_list_text_line(object, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 3.0, y_widget - element_size * 0.5 - SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.0, SEDUCE_WIDGET_LIST_ELEMENT_SIZE * 1.5 + (1.0 - time) * f_randf(i + 1) * 0.4, 0.05, color, time);										
-				}				
-			break;
 			case SEDUCE_PET_TIME :
 				if(input->mode == BAM_DRAW)
 					seduce_primitive_circle_add_3d(object,
-											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
+											x, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 											0, 1, 0,
 											0, 0, 1,
 											element_size * 0.5 + (1.0 - time) * f_randf(i + 1) * 0.4,
@@ -707,7 +753,7 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 			case SEDUCE_PET_DATE :
 				if(input->mode == BAM_DRAW)
 					seduce_primitive_circle_add_3d(object,
-											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
+											x, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 											0, 1, 0,
 											0, 0, 1,
 											element_size * 0.5 + (1.0 - time) * f_randf(i + 1) * 0.4,
@@ -728,15 +774,17 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 											color[0], color[1], color[2], color[3],
 											color[0], color[1], color[2], color[3]);*/
 
-				if(S_TIS_DONE == seduce_widget_select_radial(input, &elements[i], &elements[i].param.select.active, elements[i].param.select.text, elements[i].param.select.count, elements[i].param.select.style, 0, y_widget - element_size * 0.5, element_size, 1, time, FALSE))
+				if(S_TIS_DONE == seduce_widget_select_radial(input, &elements[i], &elements[i].param.select.active, elements[i].param.select.text, elements[i].param.select.count, elements[i].param.select.style, x, y_widget - element_size * 0.5, element_size, 1, time, FALSE))
 					return i;
 	
 				if(input->mode == BAM_DRAW)
-					seduce_text_line_draw(NULL, element_size * 0.5 + SEDUCE_T_SIZE, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, SEDUCE_T_SIZE,  SEDUCE_T_SPACE, elements[i].param.select.text[elements[i].param.select.active], text_color[0], text_color[1], text_color[2], text_color[3], -1);
+					seduce_text_line_draw(NULL, x + element_size * 0.5 + SEDUCE_T_SIZE, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, SEDUCE_T_SIZE,  SEDUCE_T_SPACE, elements[i].param.select.text[elements[i].param.select.active], text_color[0], text_color[1], text_color[2], text_color[3], -1);
 
 			break;
 			case SEDUCE_PET_POPUP :
-				if(input->mode == BAM_DRAW)
+				seduce_popup_detect_icon(input, &elements[i], elements[i].param.popup.icon, x, y_widget - element_size * 0.5,  element_size, time, elements[i].param.popup.func, elements[i].param.popup.user, elements[i].param.popup.displace, text_color);	
+		/*		if(input->mode == BAM_DRAW)
+				{
 					seduce_primitive_circle_add_3d(object,
 											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 											0, 1, 0,
@@ -746,11 +794,12 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 											y_widget + f_randnf(i + 2) * time * 0.1, element_size * 5 + (1.0 - time) * f_randf(i + 1),
 											color[0], color[1], color[2], color[3],
 											color[0], color[1], color[2], color[3]);
+				}*/
 			break;
 			case SEDUCE_PET_IMAGE :
 				if(input->mode == BAM_DRAW)
 					seduce_primitive_circle_add_3d(object,
-											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
+											x, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 											0, 1, 0,
 											0, 0, 1,
 											element_size * 0.5 + (1.0 - time) * f_randf(i + 1) * 0.4,
@@ -760,9 +809,18 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 											color[0], color[1], color[2], color[3]);
 			break;
 			case SEDUCE_PET_SECTION_START :
+				if((elements[i].param.section && seduce_widget_button_icon(input, &elements[i], SEDUCE_OBJECT_DOWN, x, y_text - element_size * 0.5, element_size, time, white)) ||
+					(!elements[i].param.section && seduce_widget_button_icon(input, &elements[i], SEDUCE_OBJECT_NEXT, x, y_text - element_size * 0.5, element_size, time, white)))
+				{
+					elements[i].param.section = !elements[i].param.section;
+				}
+			//	if(seduce_widget_toggle_icon(input, &elements[i], &elements[i].param.section, SEDUCE_OBJECT_NEXT, x, y_text - element_size * 0.5, element_size, time))
+			//		return i;
+			//	if(seduce_widget_toggle_icon(input, &elements[i], &elements[i].param.section, SEDUCE_OBJECT_DOWN, x, y_text - element_size * 0.5, element_size, time))
+			//		return i;
 				if(input->mode == BAM_DRAW)
 					seduce_primitive_circle_add_3d(object,
-											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
+											x, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 											0, 1, 0,
 											0, 0, 1,
 											element_size * 0.5 + (1.0 - time) * f_randf(i + 1) * 0.4,
@@ -770,11 +828,12 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 											y_widget + f_randnf(i + 2) * time * 0.1, element_size * 5 + (1.0 - time) * f_randf(i + 1),
 											color[0], color[1], color[2], color[3],
 											color[0], color[1], color[2], color[3]);
+				
 			break;
 			case SEDUCE_PET_SECTION_END :
 				if(input->mode == BAM_DRAW)
 					seduce_primitive_circle_add_3d(object,
-											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
+											x, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 											0, 1, 0,
 											0, 0, 1,
 											element_size * 0.5 + (1.0 - time) * f_randf(i + 1) * 0.4,
@@ -786,7 +845,7 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 			case SEDUCE_PET_CUSTOM :
 				if(input->mode == BAM_DRAW)
 					seduce_primitive_circle_add_3d(object,
-											0, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
+											x, y_widget - element_size * 0.5, (1.0 - time) * f_randnf(i) * 0.7,
 											0, 1, 0,
 											0, 0, 1,
 											element_size * 0.5 + (1.0 - time) * f_randf(i + 1) * 0.4,
@@ -796,11 +855,14 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 											color[0], color[1], color[2], color[3]);
 			break;
 			case SEDUCE_PET_OK_CANCEL :
-				f = ((text_size + element_right) - 0.05) / 2.0 - element_size;
+				if(style == SEDUCE_WLS_PANEL)
+					f = ((text_size + element_right) - SEDUCE_T_SIZE * 5) / 2.0 - element_size;
+				else
+					f = ((text_size + element_right) - SEDUCE_T_SIZE) / 2.0 - element_size;
 				if(input->mode == BAM_DRAW)
 				{
-					seduce_widget_list_text_line(object, -text_size + element_size * 0.5, y_widget, element_size + (1.0 - time) * f_randf(i + 1) * 0.4, f, color, time);
-					seduce_widget_list_text_line(object, element_right - element_size * 0.5 - f, y_widget, element_size + (1.0 - time) * f_randf(i + 1) * 0.4, f, color, time);
+					seduce_widget_list_text_line(input, &elements[i].param.ok_cancel, object, text_size + element_size * 0.5, y_widget, element_size + (1.0 - time) * f_randf(i + 1) * 0.4, f, color, time);
+					seduce_widget_list_text_line(input, &elements[i].type, object, element_right - element_size * 0.5 - f, y_widget, element_size + (1.0 - time) * f_randf(i + 1) * 0.4, f, color, time);
 				}
 				elements[i].param.ok_cancel = SEDUCE_PEOCS_UNDECIDED;
 				if(seduce_text_button(input, &elements[i].param.ok_cancel, -text_size + element_size * 0.5 + f * 0.5, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, 0.5, SEDUCE_T_SIZE,  SEDUCE_T_SPACE, "CANCEL", color[0], color[1], color[2], color[3], 1.0 - color[0], 1.0 - color[1], 1.0 - color[2], color[3]))			
@@ -813,6 +875,40 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 					elements[i].param.ok_cancel = SEDUCE_PEOCS_OK;
 					return i;
 				}
+			break;
+			case SEDUCE_PET_CLOSE_WINDOW :
+				if(seduce_widget_button_icon(input, &elements[i].param.close_window, SEDUCE_OBJECT_CLOSE, element_right + margin * 0.75, length * 0.5 + margin * 0.75,  0.02, 1, c))
+				{
+					elements[i].param.close_window = TRUE;
+					return i;
+				}
+
+
+
+	/*		if(style == SEDUCE_WLS_PANEL)
+			{
+				margin = SEDUCE_WIDGET_LIST_MARGIN;
+				seduce_background_shadow_square_add(object,
+													-text_size - margin, length * -0.5 - margin,
+													text_size + element_right + 2.0 * margin, length + 2.0 * margin, 0.03);
+				seduce_background_square_add(object, id, 0,
+													-text_size - margin, length * -0.5 - margin, 0, 
+													text_size + element_right + 2.0 * margin, length + 2.0 * margin,
+													background_color[0], background_color[1], background_color[2], background_color[3]);
+				element_left = text_size;
+			}else
+			{
+				margin = SEDUCE_WIDGET_LIST_SPACING;
+				seduce_background_shadow_square_add(object,
+													-element_left - margin, f + length * -0.5 - margin,
+													element_left + element_right + 2.0 * margin, length + 2.0 * margin, 0.03);
+				seduce_background_square_add(object, id, 0,
+													-element_left - margin, f + length * -0.5 - margin, 0, 
+													element_left + element_right + 2.0 * margin, length + 2.0 * margin,
+													background_color[0], background_color[1], background_color[2], background_color[3]);
+				text_size = element_left;
+			}*/
+
 			break;
 		}
 
@@ -835,27 +931,53 @@ uint seduce_widget_list(BInputState *input, void *id, SeducePanelElement *elemen
 			f = (float)i / (float)element_count - 0.5;
 			if(f < 0.0)
 				f = -f;
-			if(time > f && elements[i].type != SEDUCE_PET_OK_CANCEL)
+			if(time > f && elements[i].type != SEDUCE_PET_OK_CANCEL && elements[i].type != SEDUCE_PET_TRIGGER)
 			{
 				f = -0.2 + (time - f) * 0.5;
 				if(f > 0.0)
 					f = 0.0;
-				if(style == SEDUCE_WLS_COMPACT && background_color != NULL)
-					seduce_text_line_draw(NULL, f - seduce_text_line_length(NULL, SEDUCE_T_SIZE,  SEDUCE_T_SPACE, elements[i].text, -1) - element_left - SEDUCE_WIDGET_LIST_SPACING - SEDUCE_T_SIZE * 2, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, SEDUCE_T_SIZE,  SEDUCE_T_SPACE, elements[i].text, text_color[0], text_color[1], text_color[2], text_color[3], -1);			
+				if(style == SEDUCE_WLS_COMPACT/* && background_color != NULL*/)
+					seduce_text_line_draw(NULL, x + f - seduce_text_line_length(NULL, SEDUCE_T_SIZE,  SEDUCE_T_SPACE, elements[i].text, -1) - element_left - SEDUCE_WIDGET_LIST_SPACING - SEDUCE_T_SIZE * 2, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, SEDUCE_T_SIZE,  SEDUCE_T_SPACE, elements[i].text, text_color[0], text_color[1], text_color[2], text_color[3], -1);			
 				else
-					seduce_text_line_draw(NULL, f - seduce_text_line_length(NULL, SEDUCE_T_SIZE,  SEDUCE_T_SPACE, elements[i].text, -1) - element_size * 0.5 - SEDUCE_T_SIZE * 2, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, SEDUCE_T_SIZE,  SEDUCE_T_SPACE, elements[i].text, text_color[0], text_color[1], text_color[2], text_color[3], -1);
+					seduce_text_line_draw(NULL, x + f - seduce_text_line_length(NULL, SEDUCE_T_SIZE,  SEDUCE_T_SPACE, elements[i].text, -1) - text_placement - SEDUCE_T_SIZE * 2, y_text - element_size * 0.5 - SEDUCE_T_SIZE * 0.75, SEDUCE_T_SIZE,  SEDUCE_T_SPACE, elements[i].text, text_color[0], text_color[1], text_color[2], text_color[3], -1);
 			}
 			y_text -= element_size;
 			y_widget -= element_size * time;
-			if(i + 1 < element_count && elements[i + 1].type != SEDUCE_PET_OK_CANCEL)
+			if(i + 1 < element_count && 
+					elements[i + 1].type != SEDUCE_PET_OK_CANCEL && 
+					(elements[i].type != SEDUCE_PET_SECTION_START || !elements[i].param.section) && 
+					elements[i + 1].type != SEDUCE_PET_CLOSE_WINDOW && text_size > 0.0001)
 				seduce_primitive_line_add_3d(object,
-											0, y_text, 0,
-											0, y_text - SEDUCE_WIDGET_LIST_SPACING, 0,
+											x, y_text, 0,
+											x, y_text - SEDUCE_WIDGET_LIST_SPACING, 0,
 											color[0], color[1], color[2], color[3],
 											color[0], color[1], color[2], color[3]);
 			y_text -= SEDUCE_WIDGET_LIST_SPACING;
 			y_widget -= SEDUCE_WIDGET_LIST_SPACING * time;
 		}
+		if(elements[i].type == SEDUCE_PET_SECTION_START)
+		{
+			x += SEDUCE_T_SIZE * 4;
+			if(!elements[i].param.section)
+			{
+				
+				for(j = 0; i < element_count; i++)
+				{	
+					if(elements[i].type == SEDUCE_PET_SECTION_START)
+						j++;
+					else if(elements[i].type == SEDUCE_PET_SECTION_END)
+					{
+						if(j == 1)
+							break;
+						j--;
+					}
+				}
+				i--;
+			}
+
+		}
+	
+
 	}
 
 	if(input->mode == BAM_DRAW)

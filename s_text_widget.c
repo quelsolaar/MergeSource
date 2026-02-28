@@ -262,7 +262,7 @@ void seduce_text_edit_init()
 	}
 }
 
-void seduce_text_activate(uint user_id, void *id,  char *text, uint buffer_size, void *done_func, void *user, boolean copy, uint pointer_id)
+void seduce_text_activate_internal(uint user_id, void *id,  char *text, uint buffer_size, void *done_func, void *user, boolean copy, uint pointer_id)
 {
 	char *t;
 	uint i;
@@ -293,6 +293,12 @@ void seduce_text_activate(uint user_id, void *id,  char *text, uint buffer_size,
 }
 
 
+void seduce_text_activate(uint user_id, void *id,  char *text, uint buffer_size, void *done_func, void *user)
+{
+	seduce_text_activate_internal(user_id, id, text, buffer_size, done_func, user, done_func != NULL, ~0);
+}
+
+
 void seduce_text_deactivate(uint user_id)
 {
 	if(user_id >= betray_support_functionality(B_SF_USER_COUNT_MAX))
@@ -304,7 +310,7 @@ void seduce_text_deactivate(uint user_id)
 	seduce_text_state[user_id].copy = NULL;
 }
 
-boolean seduce_text_edit_active(void *id)
+boolean seduce_text_edit_active_is_id(void *id)
 {
 	uint i, count;
 	count = betray_support_functionality(B_SF_USER_COUNT_MAX);
@@ -317,6 +323,17 @@ boolean seduce_text_edit_active(void *id)
 			if(seduce_text_state[i].id == id)
 				return TRUE;
 	return FALSE;
+}
+
+
+boolean seduce_text_edit_active_is_user_id(uint user_id)
+{
+	uint i, count;
+	count = betray_support_functionality(B_SF_USER_COUNT_MAX);
+	if(user_id < user_id)
+		return seduce_text_state[user_id].id != NULL;
+	for(i = 0; i < count && seduce_text_state[i].id == NULL; i++);
+	return i < count;
 }
 
 
@@ -380,7 +397,7 @@ STypeInState seduce_text_box_edit(BInputState *input, void *id, char *text, uint
 		for(i = 0; i < input->pointer_count; i++)
 			if(input->pointers[i].button[0] == TRUE && input->pointers[i].last_button[0] == FALSE)
 				if(/*seduce_text_state[input->pointers[i].user_id].id = id &&*/ id == seduce_element_pointer_id(input, i, NULL))
-					seduce_text_activate(input->pointers[i].user_id, id,  text, buffer_size, NULL, NULL, FALSE, i);
+					seduce_text_activate_internal(input->pointers[i].user_id, id,  text, buffer_size, NULL, NULL, FALSE, i);
 
 		
 		for(i = 0; i < input->user_count; i++)
@@ -477,7 +494,7 @@ STypeInState seduce_text_monospace_edit(BInputState *input, void *id, char *text
 		for(i = 0; i < input->pointer_count; i++)
 			if(input->pointers[i].button[0] == TRUE && input->pointers[i].last_button[0] == FALSE)
 				if(id == seduce_element_pointer_id(input, i, NULL))
-					seduce_text_activate(input->pointers[i].user_id, id,  text, buffer_size, NULL, NULL, FALSE, i);
+					seduce_text_activate_internal(input->pointers[i].user_id, id,  text, buffer_size, NULL, NULL, FALSE, i);
 
 		
 		for(i = 0; i < input->user_count; i++)
@@ -626,7 +643,7 @@ STypeInState seduce_text_edit_line(BInputState *input, void *id, SeduceRenderFon
 		for(i = 0; i < input->pointer_count; i++)
 			if(input->pointers[i].button[0] == TRUE && input->pointers[i].last_button[0] == FALSE)
 				if(/*seduce_text_state[input->pointers[i].user_id].id != id && */id == seduce_element_pointer_id(input, i, NULL))
-					seduce_text_activate(input->pointers[i].user_id, id,  text, buffer_size, done_func, user, done_func != NULL, i);
+					seduce_text_activate_internal(input->pointers[i].user_id, id,  text, buffer_size, done_func, user, done_func != NULL, i);
 
 
 		for(i = 0; i < input->user_count; i++)
@@ -677,14 +694,14 @@ STypeInState seduce_text_edit_line(BInputState *input, void *id, SeduceRenderFon
 							seduce_text_edit_backspace(t, buffer_size, &seduce_text_state[i].select_start, &seduce_text_state[i].select_end, NULL, 0);
 						else if(input->button_event[j].button == BETRAY_BUTTON_RETURN) 
 						{
+							seduce_text_state[i].id = NULL;
 							if(seduce_text_state[i].done_func != NULL)
 							{
 								void (* done_func)(void *user, char *text);
 								done_func = seduce_text_state[i].done_func;
 								done_func(user, t);
-								free(seduce_text_state[i].copy);
+								free(t);
 							}
-							seduce_text_state[i].id = NULL;
 							return S_TIS_DONE;
 						}
 						else if(input->button_event[j].character > 31 && input->button_event[j].character < 256)
@@ -763,7 +780,7 @@ STypeInState seduce_text_edit_obfuscated(BInputState *input, void *id, char *tex
 		for(i = 0; i < input->pointer_count; i++)
 			if(input->pointers[i].button[0] == TRUE && input->pointers[i].last_button[0] == FALSE)
 				if(/*seduce_text_state[input->pointers[i].user_id].id != id && */id == seduce_element_pointer_id(input, i, NULL))
-					seduce_text_activate(input->pointers[i].user_id, id,  text, buffer_size, done_func, user, done_func != NULL, i);
+					seduce_text_activate_internal(input->pointers[i].user_id, id,  text, buffer_size, done_func, user, done_func != NULL, i);
 		
 
 
@@ -918,7 +935,7 @@ STypeInState seduce_text_edit_double(BInputState *input, void *id, SeduceRenderF
 						if(pos > 0)
 							buffer[j - pos] = 0;
 					}
-					seduce_text_activate(input->pointers[i].user_id, id, buffer, 256, done_func, user, TRUE, i);
+					seduce_text_activate_internal(input->pointers[i].user_id, id, buffer, 256, done_func, user, TRUE, i);
 				}
 			}
 		}
@@ -1139,7 +1156,7 @@ STypeInState seduce_text_edit_float(BInputState *input, void *id, SeduceRenderFo
 						if(pos > 0)
 							buffer[j - pos] = 0;
 					}
-					seduce_text_activate(input->pointers[i].user_id, id, buffer, 256, done_func, user, TRUE, i);
+					seduce_text_activate_internal(input->pointers[i].user_id, id, buffer, 256, done_func, user, TRUE, i);
 				}
 			}
 		}
@@ -1337,7 +1354,7 @@ STypeInState seduce_text_edit_int(BInputState *input, void *id, SeduceRenderFont
 				if(/*seduce_text_state[input->pointers[i].user_id].id != id &&*/ id == seduce_element_pointer_id(input, i, NULL))
 				{
 					sprintf(buffer, "%i", *value);
-					seduce_text_activate(input->pointers[i].user_id, id, buffer, 256, done_func, user, TRUE, i);
+					seduce_text_activate_internal(input->pointers[i].user_id, id, buffer, 256, done_func, user, TRUE, i);
 				}
 			}
 		}
@@ -1503,7 +1520,7 @@ STypeInState seduce_text_edit_uint(BInputState *input, void *id, SeduceRenderFon
 				if(/*seduce_text_state[input->pointers[i].user_id].id != id &&*/ id == seduce_element_pointer_id(input, i, NULL))
 				{
 					sprintf(buffer, "%u", *value);
-					seduce_text_activate(input->pointers[i].user_id, id, buffer, 256, done_func, user, TRUE, i);
+					seduce_text_activate_internal(input->pointers[i].user_id, id, buffer, 256, done_func, user, TRUE, i);
 				}
 			}
 		}

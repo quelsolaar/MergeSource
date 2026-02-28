@@ -1,16 +1,12 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include "forge.h"
 #include "r_include.h"
 
 
-#ifdef __APPLE__
-boolean r_buffer_extension = TRUE;
-#else
+
 boolean r_buffer_extension = FALSE;
-#endif
 
 GLvoid		(APIENTRY *r_glBindBufferARB)(uint target, uint buffer);
 GLvoid		(APIENTRY *r_glDeleteBuffersARB)(uint n, const uint *buffers);
@@ -105,7 +101,7 @@ RArrayPool *r_array_pool_bound = NULL;
 
 uint r_array_vertex_size(RFormats *vertex_format_types, uint *vertex_format_size, uint vertex_format_count)
 {
-	uint type_sizes[] = {sizeof(int8), sizeof(uint8), sizeof(int16), sizeof(uint16), sizeof(int32), sizeof(uint32), sizeof(float), sizeof(double)}, i, size = 0;
+	uint type_sizes[] = {sizeof(int8), sizeof(uint8), sizeof(int16), sizeof(uint16), sizeof(int32), sizeof(uint32), sizeof(float), sizeof(double), sizeof(uint8), sizeof(uint16), sizeof(uint32)}, i, size = 0;
 	for(i = 0; i < vertex_format_count; i++)
 	{
 	/*	printf("vertex_format_types[%u] = %u\n", i, type_sizes[vertex_format_types[i]]);
@@ -166,9 +162,9 @@ void r_array_debug_print_out(void *pool)
 }
 
 
-void *r_array_allocate(uint vertex_count, RFormats *vertex_format_types, uint *vertex_format_size, uint vertex_format_count, uint reference_count)
+void *r_array_allocate_internal(uint vertex_count, RFormats *vertex_format_types, uint *vertex_format_size, uint vertex_format_count, uint reference_count, char *file, uint line)
 {
-	uint type_sizes[] = {1, 1, 2, 2, 4, 4, 4, 8}, i, size = 0;
+	uint type_sizes[] = {1, 1, 2, 2, 4, 4, 4, 8, 1, 2, 4}, i, size = 0;
 	RArrayPool *p;
 	p = malloc(sizeof *p);
 	p->vertex_format_count = vertex_format_count;
@@ -181,6 +177,7 @@ void *r_array_allocate(uint vertex_count, RFormats *vertex_format_types, uint *v
 		p->vertex_format_size[i] = 0;
 
 	p->vertex_size = size = r_array_vertex_size(vertex_format_types, vertex_format_size, vertex_format_count);
+	r_draw_asset_track(RELINQUISH_AT_BUFFER, p, vertex_count * size + reference_count * sizeof(uint32), file, line);
 
 	p->divide[R_AD_VERTEX].array_length = vertex_count;
 	p->divide[R_AD_REFERENCE].array_length = reference_count;
@@ -193,13 +190,8 @@ void *r_array_allocate(uint vertex_count, RFormats *vertex_format_types, uint *v
 		p->data = NULL;
 		if(r_glBindVertexArray != NULL)
 		{
-#ifndef BETRAY_CONTEXT_OPENGLES
-            static uint types[] = {GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT, GL_UNSIGNED_SHORT, GL_INT, GL_UNSIGNED_INT, GL_FLOAT, GL_DOUBLE};
-            uint type_sizes[] = {1, 1, 2, 2, 4, 4, 4, 8}, i, size = 0;
-#else
-            static uint types[] = {GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT, GL_UNSIGNED_SHORT, GL_INT, GL_UNSIGNED_INT, GL_FLOAT, GL_FLOAT};
-            uint type_sizes[] = {1, 1, 2, 2, 4, 4, 4, 4}, i, size = 0;
-#endif
+			static uint types[] = {GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT, GL_UNSIGNED_SHORT, GL_INT, GL_UNSIGNED_INT, GL_FLOAT, GL_DOUBLE, GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT, GL_UNSIGNED_INT};
+			uint type_sizes[] = {1, 1, 2, 2, 4, 4, 4, 8, 1, 2, 4}, i, size = 0;
 			r_glGenVertexArrays(1, &p->gl_array);
 			r_glBindVertexArray(p->gl_array);
 			r_glBindBufferARB(GL_ARRAY_BUFFER_ARB, p->gl_buffer);
@@ -207,7 +199,7 @@ void *r_array_allocate(uint vertex_count, RFormats *vertex_format_types, uint *v
 			for(i = 0; i < p->vertex_format_count; i++)
 			{
 				r_glEnableVertexAttribArrayARB(i);
-				r_glVertexAttribPointerARB(i, p->vertex_format_size[i], types[p->vertex_format_types[i]], FALSE, p->vertex_size, &p->data[size * 4]);
+				r_glVertexAttribPointerARB(i, p->vertex_format_size[i], types[p->vertex_format_types[i]], p->vertex_format_types[i] >= R_UINT8_NORMALIZED, p->vertex_size, &p->data[size * 4]);
 				size += (type_sizes[p->vertex_format_types[i]] * p->vertex_format_size[i] + 3) / 4; 
 			}
 			r_glBindVertexArray(0);
@@ -241,6 +233,8 @@ void r_array_free(void *pool)
 	if(r_array_pool_bound == pool)
 		r_array_pool_bound = NULL;
 	p = pool;
+	r_draw_asset_untrack(RELINQUISH_AT_BUFFER, pool, p->vertex_size * p->divide[R_AD_VERTEX].array_length + p->divide[R_AD_REFERENCE].array_length * sizeof(uint32));
+
 
 	if(p->data != NULL)
 		free(p->data);
@@ -514,29 +508,21 @@ void  r_array_init(void)
 {
 	uint i;
 #ifdef RELINQUISH_CONTEXT_OPENGLES
-    r_glBindBufferARB = glBindBuffer;
-    r_glDeleteBuffersARB = glDeleteBuffers;
-    r_glGenBuffersARB = glGenBuffers;
-    r_glBufferDataARB = glBufferData;
-    r_glBufferSubDataARB = glBufferSubData;
-    r_glGetBufferSubDataARB = r_extension_get_address("glGetBufferSubData");
-    r_glBindVertexArray = r_extension_get_address("glBindVertexArray");
-    r_glDeleteVertexArrays = r_extension_get_address("glDeleteVertexArrays");
-    r_glGenVertexArrays = r_extension_get_address("glGenVertexArrays");
-    r_glVertexAttribPointerARB = glVertexAttribPointer;
-    r_glEnableVertexAttribArrayARB = glEnableVertexAttribArray;
-    r_glDisableVertexAttribArrayARB = glDisableVertexAttribArray;
-    
-    r_buffer_extension = TRUE;
-#endif
+	r_glBindBufferARB = glBindBuffer;
+	r_glDeleteBuffersARB = glDeleteBuffers;
+	r_glGenBuffersARB = glGenBuffers;
+	r_glBufferDataARB = glBufferData;
+	r_glBufferSubDataARB = glBufferSubData;
+//	r_glGetBufferSubDataARB = glGetBufferSubData;
+
+	r_glVertexAttribPointerARB = glVertexAttribPointer;
+	r_glEnableVertexAttribArrayARB = glEnableVertexAttribArray;
+	r_glDisableVertexAttribArrayARB = glDisableVertexAttribArray;
+	r_buffer_extension = TRUE;
+#endif 
 #ifdef RELINQUISH_CONTEXT_OPENGL
-#ifdef __APPLE__
-    //FK: Macos OpenGL doesn't really list *all* extensions...
-    r_buffer_extension = TRUE;
-#else
-    r_buffer_extension = r_extension_test("GL_ARB_vertex_buffer_object") ;
-#endif
-	r_buffer_extension = r_extension_test("GL_ARB_vertex_buffer_object") ;
+	r_buffer_extension = r_extension_test("GL_ARB_vertex_buffer_object");
+//	r_buffer_extension = FALSE;
 	if(r_buffer_extension)
 	{
 		r_glBindBufferARB = r_extension_get_address("glBindBufferARB");
@@ -578,14 +564,8 @@ float *sui_vertex_tmp = NULL;
 
 void r_array_vertex_atrib_set(void *pool, boolean reference)
 {
-	//FK: There's not GL_DOUBLE on OpenGL ES
-#ifndef BETRAY_CONTEXT_OPENGLES
-    static uint types[] = {GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT, GL_UNSIGNED_SHORT, GL_INT, GL_UNSIGNED_INT, GL_FLOAT, GL_DOUBLE};
-    uint type_sizes[] = {1, 1, 2, 2, 4, 4, 4, 8}, i, size = 0;
-#else
-    static uint types[] = {GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT, GL_UNSIGNED_SHORT, GL_INT, GL_UNSIGNED_INT, GL_FLOAT, GL_FLOAT};
-    uint type_sizes[] = {1, 1, 2, 2, 4, 4, 4, 4}, i, size = 0;
-#endif
+	static uint types[] = {GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT, GL_UNSIGNED_SHORT, GL_INT, GL_UNSIGNED_INT, GL_FLOAT, GL_DOUBLE, GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT, GL_UNSIGNED_INT};
+	uint type_sizes[] = {1, 1, 2, 2, 4, 4, 4, 8, 1, 2, 4}, i, size = 0;
 	RArrayPool *p;
 //	if(r_array_pool_bound == pool)
 //		return;
@@ -608,7 +588,7 @@ void r_array_vertex_atrib_set(void *pool, boolean reference)
 		}
 		for(i = 0; i < p->vertex_format_count; i++)
 		{
-			r_glVertexAttribPointerARB(i, p->vertex_format_size[i], types[p->vertex_format_types[i]], FALSE, p->vertex_size, &p->data[size * 4]);
+			r_glVertexAttribPointerARB(i, p->vertex_format_size[i], types[p->vertex_format_types[i]], p->vertex_format_types[i] >= R_UINT8_NORMALIZED, p->vertex_size, &p->data[size * 4]);
 			if(!r_array_attrib_mode[i])
 				r_glEnableVertexAttribArrayARB(i);
 			r_array_attrib_mode[i] = TRUE;
@@ -949,7 +929,7 @@ void r_array_draw(RArrayPool *pool, RArraySection *section, RPrimitive primitive
 
 
 
-void r_array_sections_draw(void *pool, void **sections, RPrimitive primitive_type, uint8 *uniforms, RArrayPool *array_pool, uint count)
+void r_array_sections_draw(void *pool, void **sections, size_t section_stride, RPrimitive primitive_type, uint8 *uniforms, RArrayPool *array_pool, uint count)
 {
 	uint i, bind_point;
 	if(r_current_shader == NULL)
@@ -998,8 +978,9 @@ void r_array_sections_draw(void *pool, void **sections, RPrimitive primitive_typ
 			r_shader_unifrom_data_set_block(r_current_shader, &(((uint8 *)uniforms)[r_current_shader->blocks[r_current_shader->instance_block].size * i]), r_current_shader->instance_block);
 			if(sections != NULL)
 			{
-				s = (RArraySection *)sections[i];
-				glDrawArrays(primitive_type, s->start, s->count);
+				s = &((uint8 *)sections[section_stride * i]);
+				if(s != NULL)
+					glDrawArrays(primitive_type, s->start, s->count);
 			}else
 				glDrawArrays(primitive_type, 0, p->divide[R_AD_VERTEX].array_length);
 		}
@@ -1062,20 +1043,30 @@ void r_array_sections_draw(void *pool, void **sections, RPrimitive primitive_typ
 									GL_DYNAMIC_DRAW_ARB);
 				if(add != 1)
 				{
+					j = 1;
 					for(i = calls = 0; i < add; i += j)
 					{
-						s = (RArraySection *)sections[i + progress];
-						command[calls].baseInstance = i;
-						command[calls].first = s->start;
-						command[calls].count = s->count;
-					//	for(j = 1; sections[i + progress] == sections[i + progress + j] && i + j < add; j++); FIX ME!
-						j = 1;
-						command[calls].instanceCount = i + j;
-						calls++;
+						memcpy(&s, &(((uint8 *)sections)[section_stride * (i + progress)]), sizeof(void *));
+						if(s != NULL)
+						{
+							command[calls].baseInstance = i;
+							command[calls].first = s->start;
+							command[calls].count = s->count;
+						//	for(j = 1; sections[i + progress] == sections[i + progress + j] && i + j < add; j++); FIX ME!
+							j = 1;
+							command[calls].instanceCount = i + j;
+							command[calls].instanceCount = 1;
+							calls++;
+						}
 					}
-					r_glMultiDrawArraysIndirect(primitive_type, command, calls, (sizeof *command));
+					if(calls != 0)
+						r_glMultiDrawArraysIndirect(primitive_type, command, calls, (sizeof *command));
 				}else
-					glDrawArrays(primitive_type, ((RArraySection *)sections)->start, ((RArraySection *)sections)->count);
+				{
+					memcpy(&s, &(((uint8 *) sections)[section_stride * progress]), sizeof(void *));
+					if(s != NULL)
+						glDrawArrays(primitive_type, s->start, s->count);
+				}
 			}
 		}else
 		{

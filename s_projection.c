@@ -807,11 +807,11 @@ void seduce_view_distance_camera_set(SViewData *v, double distance)
 	v->data.scroll.target_camera[2] = v->data.scroll.target_camera[2] + (v->camera[2] - v->target[2]) * 0.2;
 }
 
-boolean seduce_view_change_right_button(SViewData *v, BInputState *input)
+boolean seduce_view_change_right_button(SViewData *v, BInputState *input, boolean rotate, boolean zoom, boolean pan)
 {
 	static boolean active = FALSE;
 	float a, b, center[2], delta[2], pan_dist[2], zoom_dist, rotate_dist[2];
-	boolean pan = FALSE, zoom = FALSE, rotate = FALSE;
+//	boolean pan = FALSE, zoom = FALSE, rotate = FALSE;
 	uint i, pointer, count = 0;
 	if(input->mode == BAM_EVENT)
 	{
@@ -842,12 +842,19 @@ boolean seduce_view_change_right_button(SViewData *v, BInputState *input)
 				if(!input->pointers[pointer].button[0] && 
 					!input->pointers[pointer].last_button[0] && 
 					!input->pointers[pointer].button[2] && 
-					!input->pointers[pointer].last_button[2])
-					seduce_view_change_rotate(v, input, 1, FALSE);
+					!input->pointers[pointer].last_button[2] && rotate)
+					seduce_view_change_rotate(v, input, 1, FALSE);				
 				else
-				{	
-					seduce_view_change_distance(v, input, 0, FALSE);
-					seduce_view_change_pan(v, input, 2, FALSE);
+				{
+					if(zoom)
+						seduce_view_change_distance(v, input, 0, FALSE);
+					if(pan)
+					{
+						if(rotate)
+							seduce_view_change_pan(v, input, 2, FALSE);
+						else if(!input->pointers[pointer].button[0])
+							seduce_view_change_pan(v, input, 1, FALSE);
+					}
 				}
 			}
 		}else

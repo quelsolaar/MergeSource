@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #include "seduce.h"
-#include "s_draw_3d.h"
+
 
 extern void seduce_background_circle_draw(BInputState *input, float pos_x, float pos_y, uint splits, float timer, uint selected);
 extern void seduce_background_angle(BInputState *input, void *id, uint part, float pos_x, float pos_y, float angle_a, float angle_b, float timer);
@@ -366,7 +366,7 @@ boolean seduce_text_angle(BInputState *input, void *id, float pos_x, float pos_y
 	return FALSE;
 }
 
-
+/*
 uint seduce_popup_old(BInputState *input, void *id, SUIPUElement *elements, uint element_count, float time)
 {
 	uint i, j, top = 0, bottom = 0, output = SEDUCE_POP_UP_NO_ACTION;
@@ -406,7 +406,6 @@ uint seduce_popup_old(BInputState *input, void *id, SUIPUElement *elements, uint
 		seduce_background_polygon_flush(input, center, 0.1 + time * 0.9);
 	//	seduce_background_polygon_flush(input, center, time);
 	}
-	/* draw up down background */
 	text_spacing = SEDUCE_T_SPACE + SEDUCE_T_SPACE * (1.0 - time) * 50.0;
 	top = 0;
 	bottom = 0;
@@ -472,7 +471,7 @@ uint seduce_popup_old(BInputState *input, void *id, SUIPUElement *elements, uint
 	}
 	return output;
 }
-
+*/
 
 
 STypeInState seduce_popup_text(BInputState *input, void *id, uint *selected, char **lables, uint element_count, SPopUpType type, float pos_x, float pos_y, float center, float size, float spacing, const char *text, float red, float green, float blue, float alpha, float red_select, float green_select, float blue_select, float alpha_select, boolean release_only)

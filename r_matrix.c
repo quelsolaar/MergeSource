@@ -655,6 +655,24 @@ boolean r_matrix_projection_surfacef(RMatrix *matrix, float *output, float *pos,
 }
 
 
+boolean r_matrix_projection_surfaced(RMatrix *matrix, double *output, double *pos, uint axis, double x, double y)
+{
+	double camera[3], pointer[3], axis_vec[3] = {0, 0, 0}, zero[3] = {0, 0, 0};
+	if(matrix == NULL)
+		matrix = (RMatrix *)r_matrix_state;
+	r_matrix_projection_worldd(matrix, pointer, x, y, -1);
+	r_matrix_projection_worldd(matrix, camera, 0, 0, 0);
+	pointer[0] -= camera[0];
+	pointer[1] -= camera[1];
+	pointer[2] -= camera[2];
+	f_normalize3d(pointer);
+	axis_vec[axis] = 1.0;
+	f_project3d(output, pos, axis_vec, camera, pointer);
+	output[axis] = pos[axis];
+	return TRUE;
+}
+
+
 boolean r_matrix_projection_axisf(RMatrix *matrix, float *output, float *pos, uint axis, float x, float y)
 {
 	float camera[3], pointer[3], axis_vec[3] = {0, 0, 0}, zero[3] = {0, 0, 0};
@@ -678,6 +696,31 @@ boolean r_matrix_projection_axisf(RMatrix *matrix, float *output, float *pos, ui
 	output[(axis + 2) % 3] = pos[(axis + 2) % 3];
 	return TRUE;
 }
+
+boolean r_matrix_projection_axisd(RMatrix *matrix, double *output, double *pos, uint axis, double x, double y)
+{
+	double camera[3], pointer[3], axis_vec[3] = {0, 0, 0}, zero[3] = {0, 0, 0};
+	if(matrix == NULL)
+		matrix = (RMatrix *)r_matrix_state;
+	r_matrix_projection_worldd(matrix, pointer, x, y, -1);
+	r_matrix_projection_worldd(matrix, camera, 0, 0, 0);
+	pointer[0] -= camera[0];
+	pointer[1] -= camera[1];
+	pointer[2] -= camera[2];
+/*	if(0 < pointer[0] * camera[0] + pointer[1] * camera[1] + pointer[2] * camera[2])
+		return FALSE;*/
+	f_normalize3d(pointer);
+	axis_vec[0] = camera[0] - pos[0];
+	axis_vec[1] = camera[1] - pos[1];
+	axis_vec[2] = camera[2] - pos[2];
+	axis_vec[axis % 3] = 0.0;
+	f_normalize3d(axis_vec);
+	f_project3d(output, pos, axis_vec, camera, pointer);
+	output[(axis + 1) % 3] = pos[(axis + 1) % 3];
+	output[(axis + 2) % 3] = pos[(axis + 2) % 3];
+	return TRUE;
+}
+
 
 
 
@@ -713,6 +756,54 @@ boolean r_matrix_projection_vectorf(RMatrix *matrix, float *output, float *pos, 
 //	printf("camera %f %f %f\n", camera[0], camera[1], camera[2]);
 //	printf("pointer %f %f %f\n", pointer[0], pointer[1], pointer[2]);
 	f_project3f(output, pos, axis_vec, camera, pointer);
+//	printf("output %f %f %f\n", output[0], output[1], output[2]);
+	output[0] -= pos[0];
+	output[1] -= pos[1];
+	output[2] -= pos[2];
+	f = normalized[0] * output[0] + normalized[1] * output[1] + normalized[2] * output[2];
+//	printf("normalized = %f %f %f\n", normalized[0], normalized[1], normalized[2]);
+//	printf("output %f %f %f\n", output[0], output[1], output[2]);
+//	printf("f = %f\n", f);
+	output[0] = pos[0] + normalized[0] * f;
+	output[1] = pos[1] + normalized[1] * f;
+	output[2] = pos[2] + normalized[2] * f;
+	return TRUE;
+}
+
+
+
+boolean r_matrix_projection_vectord(RMatrix *matrix, double *output, double *pos, double *vec, double x, double y)
+{
+	double f, camera[3], pointer[3], axis_vec[3], normalized[3], zero[3] = {0, 0, 0};
+	if(matrix == NULL)
+		matrix = (RMatrix *)r_matrix_state;
+	r_matrix_projection_worldd(matrix, pointer, x, y, -1);
+	r_matrix_projection_worldd(matrix, camera, 0, 0, 0);
+	pointer[0] -= camera[0];
+	pointer[1] -= camera[1];
+	pointer[2] -= camera[2];
+	if(0 < pointer[0] * camera[0] + pointer[1] * camera[1] + pointer[2] * camera[2])
+		return FALSE;
+	f_normalize3d(pointer);
+	axis_vec[0] = camera[0] - pos[0];
+	axis_vec[1] = camera[1] - pos[1];
+	axis_vec[2] = camera[2] - pos[2];
+//	printf("axis_vec %f %f %f\n", axis_vec[0], axis_vec[1], axis_vec[2]);
+	normalized[0] = vec[0];
+	normalized[1] = vec[1];
+	normalized[2] = vec[2];
+	f_normalize3d(normalized);
+//	printf("normalized %f %f %f\n", normalized[0], normalized[1], normalized[2]);
+	f = normalized[0] * axis_vec[0] + normalized[1] * axis_vec[1] + normalized[2] * axis_vec[2];
+	axis_vec[0] -= normalized[0] * f;
+	axis_vec[1] -= normalized[1] * f;
+	axis_vec[2] -= normalized[2] * f;
+	f_normalize3d(axis_vec);
+//	printf("axis_vec %f %f %f\n", axis_vec[0], axis_vec[1], axis_vec[2]);
+//	printf("pos %f %f %f\n", pos[0], pos[1], pos[2]);
+//	printf("camera %f %f %f\n", camera[0], camera[1], camera[2]);
+//	printf("pointer %f %f %f\n", pointer[0], pointer[1], pointer[2]);
+	f_project3d(output, pos, axis_vec, camera, pointer);
 //	printf("output %f %f %f\n", output[0], output[1], output[2]);
 	output[0] -= pos[0];
 	output[1] -= pos[1];

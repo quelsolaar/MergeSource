@@ -1,6 +1,8 @@
 #include <math.h> 
 #include <stdlib.h> 
 #include <stdio.h> 
+#include "forge.h"
+#include "relinquish.h"
 #include "seduce.h"
 
 #define S_BACKGROUND_PARTICLE_COUNT 512

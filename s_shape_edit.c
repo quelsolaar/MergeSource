@@ -5,7 +5,7 @@
 #include "imagine.h"
 #include "seduce.h"
 #include "originate.h"
-#include "s_draw_3d.h"
+
 
 #define SEDUCE_SHAPE_MIN_EDGE_SIZE 0.02
 #define SEDUCE_SHAPE_EDITOR_SNAP 0.00001
@@ -272,7 +272,7 @@ void seduce_shape_loop_polygonize(float *array, uint size, float *polygons)
 	free(used);
 }
 
-uint seduce_shape_add_loop(SShape *shape, float x, float y, float size, uint user_type, void *user_pointer)
+void seduce_shape_add_loop(SShape *shape, float x, float y, float size, uint user_type, void *user_pointer)
 {
 	SShapeLoop *l;
 	if(shape->loop_count == shape->loop_allocated)

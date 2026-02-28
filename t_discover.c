@@ -1,3 +1,4 @@
+#ifdef DEPRICATED
 #include "forge.h"
 #include "imagine.h"
 #include "testify.h"
@@ -29,7 +30,6 @@ char *testify_discovery_character_transform_new = "zxvtsrqpnmkjhgdb";
 char *testify_discovery_character_transform = "lfcmugypwbvkjxqz";
 #define TESTIFY_DISCOVER_USER_NAME_LENGTH 12
 
-void testify_send_port_mapping(boolean udp, uint16 port);
 
 void testify_discover_encode(char *output, uint8 *input, uint input_count, boolean terminate)
 {
@@ -325,7 +325,6 @@ TestifyNetworkPeer *testify_discover(char *service, uint16 port, uint *count, ui
 		discovery->message[i] = 0;
 	}	
 	
-	testify_send_port_mapping(0, port);
 
 	if(udp_handle == NULL)
 		for(i = 0; i < 4 &&	(udp_handle = testify_network_datagram_create(5352 + i)) == NULL; i++);
@@ -523,7 +522,7 @@ TestifyNetworkPeer *testify_discover(char *service, uint16 port, uint *count, ui
 	return discovery->addresses; 
 }
 /*
-TestifyNetworkPeer *testify_discover_local(char *service, uint16 port, uint *count, uint8 *seed, uint seed_length, char *message)
+TestifyNetworkPeer *testify_discover_broadcast(char *service, uint16 port, uint *count, uint8 *seed, uint seed_length, char *message)
 {
 	TestifyNetworkAddress *from;
 	THandle *handle;
@@ -542,3 +541,5 @@ TestifyNetworkPeer *testify_discover_local(char *service, uint16 port, uint *cou
 			for(
 	}
 }*/
+
+#endif

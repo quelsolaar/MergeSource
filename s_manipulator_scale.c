@@ -1,7 +1,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include "seduce.h"
-#include "s_draw_3d.h"
+
 
 extern void seduce_object_3d_draw(BInputState *input, float pos_x, float pos_y, float pos_z, float scale, uint id, float fade,  float *color);
 extern void seduce_widget_overlay_matrix(RMatrix *matrix);
@@ -61,8 +61,7 @@ STypeInState seduce_manipulator_radius(BInputState *input, RMatrix *m, float *po
 			RMatrix draw_matrix;
 
 			time = 1.0 - time;
-
-			seduce_widget_overlay_matrix(&draw_matrix);
+			
 			size = *radius;
 			for(i = 0; i < input->pointer_count; i++)
 			{
@@ -85,12 +84,56 @@ STypeInState seduce_manipulator_radius(BInputState *input, RMatrix *m, float *po
 					active = TRUE;
 				}
 			}
+			b[0] = pos[0] + (m->matrix[m->current][1]) * *radius;
+			b[1] = pos[1] + (m->matrix[m->current][5]) * *radius;
+			b[2] = pos[2] + (m->matrix[m->current][9]) * *radius;
+			for(f = PI * 2.0 * 0.01; f < PI * 2.005; f += PI * 2.0 * 0.01)
+			{
+				a[0] = b[0];
+				a[1] = b[1];
+				a[2] = b[2];
+				
+				b[0] = pos[0] + (sin(f) * m->matrix[m->current][0] + cos(f) * m->matrix[m->current][1]) * *radius;
+				b[1] = pos[1] + (sin(f) * m->matrix[m->current][4] + cos(f) * m->matrix[m->current][5]) * *radius;
+				b[2] = pos[2] + (sin(f) * m->matrix[m->current][8] + cos(f) * m->matrix[m->current][9]) * *radius;
+				seduce_element_add_line(input, id, 0, a, b, 0.05);
+			}
+			{
+				SeduceLineObject *line;
+				line = seduce_primitive_line_object_allocate(); /* Allocates a line object. */
+				seduce_primitive_line_animation_set(0, 0, 1, 0.9, 1);
+
+				if(active)
+					seduce_primitive_circle_add_3d(line,
+								pos[0], pos[1], pos[2],
+								m->matrix[m->current][0], m->matrix[m->current][4], m->matrix[m->current][8],
+								m->matrix[m->current][2], m->matrix[m->current][6], m->matrix[m->current][10],
+								*radius,
+								0.0, 1.0,
+								0, 1,
+								0.8, 0.8, 0.8, 0.4,
+								0.8, 0.8, 0.8, 0.4);
+				else
+					seduce_primitive_circle_add_3d(line,
+								pos[0], pos[1], pos[2],
+								m->matrix[m->current][0], m->matrix[m->current][4], m->matrix[m->current][8],
+								m->matrix[m->current][2], m->matrix[m->current][6], m->matrix[m->current][10],
+								*radius,
+								0.0, 1.0,
+								0, 1,
+								0.4, 0.4, 0.4, 0.2,
+								0.4, 0.4, 0.4, 0.2);
+				seduce_primitive_line_draw(line, 1, 1, 1, 1); 
+				seduce_primitive_line_object_free(line);
+			}
+				
+			seduce_widget_overlay_matrix(&draw_matrix);
 			r_matrix_translate(&draw_matrix, tmp[0], tmp[1], 0);
 			expand = ((*radius) - size) / size + time * time * 10.0;
 			if(expand < -1.0)
 				expand = -1.0;
 			r_matrix_scale(&draw_matrix, size * 2.0 / dist, size * 2.0 / dist, size * 2.0 / dist);
-			for(i = 0; i < 12; i++)
+			for(i = 0; i < 12  * 0; i++)
 			{
 				r_matrix_push(&draw_matrix);
 				if(expand < 0.0)
@@ -100,9 +143,9 @@ STypeInState seduce_manipulator_radius(BInputState *input, RMatrix *m, float *po
 				}else
 					r_matrix_rotate(&draw_matrix, (float)i * 360.0 / 12.0/* - expand * 20.0*/, 0, 0, 1);
 				if(active)
-					seduce_object_3d_draw(input, expand * 0.5, 0, 0, 1, SUI_3D_OBJECT_RADIUS_HANDLE, 1, color);
+					seduce_object_3d_draw(input, expand * 0.5, 0, 0, 1, SEDUCE_OBJECT_HANDLE_RADIUS, 1, color);
 				else
-					seduce_object_3d_draw(input, expand * 0.5, 0, 0, 1, SUI_3D_OBJECT_RADIUS_HANDLE, 1, NULL);
+					seduce_object_3d_draw(input, expand * 0.5, 0, 0, 1, SEDUCE_OBJECT_HANDLE_RADIUS, 1, NULL);
 				seduce_element_add_line(input, id, 0, a, b, 0.02);
 				r_matrix_pop(&draw_matrix);
 			}
@@ -304,9 +347,9 @@ STypeInState seduce_manipulator_scale(BInputState *input, RMatrix *m, float *pos
 				a[1] = move[1];
 				a[2] = move[2];
 				if(parts[6])
-					seduce_object_3d_draw(input, move[0], move[1], move[2], scale * 0.015 * -tmp[2], SUI_3D_OBJECT_SCALE_3D, 1, &color[8]);
+					seduce_object_3d_draw(input, move[0], move[1], move[2], scale * 0.015 * -tmp[2], SEDUCE_OBJECT_HANDLE_SCALE_VOLUME, 1, &color[8]);
 				else
-					seduce_object_3d_draw(input, move[0], move[1], move[2], scale * 0.015 * -tmp[2], SUI_3D_OBJECT_SCALE_3D, 1, NULL);
+					seduce_object_3d_draw(input, move[0], move[1], move[2], scale * 0.015 * -tmp[2], SEDUCE_OBJECT_HANDLE_SCALE_VOLUME, 1, NULL);
 				seduce_element_add_point(input, id, 6, a, scale * 0.015 * -tmp[2]);
 				r_matrix_pop(m);
 			}
@@ -318,9 +361,9 @@ STypeInState seduce_manipulator_scale(BInputState *input, RMatrix *m, float *pos
 				a[1] = 0;
 				a[2] = 0;
 				if(parts[0])
-					seduce_object_3d_draw(input, a[0], 0, 0, scale * 0.015 * -tmp[2], SUI_3D_OBJECT_SCALE_AXIS, 1, &color[2]);
+					seduce_object_3d_draw(input, a[0], 0, 0, scale * 0.015 * -tmp[2], SEDUCE_OBJECT_HANDLE_SCALE_AXIS, 1, &color[2]);
 				else
-					seduce_object_3d_draw(input, a[0], 0, 0, scale * 0.015 * -tmp[2], SUI_3D_OBJECT_SCALE_AXIS, 1, NULL);
+					seduce_object_3d_draw(input, a[0], 0, 0, scale * 0.015 * -tmp[2], SEDUCE_OBJECT_HANDLE_SCALE_AXIS, 1, NULL);
 				seduce_element_add_point(input, id, 0, a, scale * 0.015 * -tmp[2]);
 				r_matrix_pop(m);
 			}
@@ -331,9 +374,9 @@ STypeInState seduce_manipulator_scale(BInputState *input, RMatrix *m, float *pos
 				a[1] = move[1];
 				a[2] = 0;
 				if(parts[5])
-					seduce_object_3d_draw(input, move[0], move[1], 0, scale * 0.015 * -tmp[2], SUI_3D_OBJECT_SCALE_PLAIN, 1, &color[5]);
+					seduce_object_3d_draw(input, move[0], move[1], 0, scale * 0.015 * -tmp[2], SEDUCE_OBJECT_HANDLE_SCALE_PLAIN, 1, &color[5]);
 				else
-					seduce_object_3d_draw(input, move[0], move[1], 0, scale * 0.015 * -tmp[2], SUI_3D_OBJECT_SCALE_PLAIN, 1, NULL);
+					seduce_object_3d_draw(input, move[0], move[1], 0, scale * 0.015 * -tmp[2], SEDUCE_OBJECT_HANDLE_SCALE_PLAIN, 1, NULL);
 				seduce_element_add_point(input, id, 5, a, scale * 0.015 * -tmp[2]);
 				r_matrix_pop(m);
 			}
@@ -346,9 +389,9 @@ STypeInState seduce_manipulator_scale(BInputState *input, RMatrix *m, float *pos
 				a[1] = 0;
 				a[2] = 0;
 				if(parts[1])
-					seduce_object_3d_draw(input, a[0], 0, 0, scale * 0.015 * -tmp[2], SUI_3D_OBJECT_SCALE_AXIS, 1, &color[1]);
+					seduce_object_3d_draw(input, a[0], 0, 0, scale * 0.015 * -tmp[2], SEDUCE_OBJECT_HANDLE_SCALE_AXIS, 1, &color[1]);
 				else
-					seduce_object_3d_draw(input, a[0], 0, 0, scale * 0.015 * -tmp[2], SUI_3D_OBJECT_SCALE_AXIS, 1, NULL);
+					seduce_object_3d_draw(input, a[0], 0, 0, scale * 0.015 * -tmp[2], SEDUCE_OBJECT_HANDLE_SCALE_AXIS, 1, NULL);
 				seduce_element_add_point(input, id, 1, a, scale * 0.015 * -tmp[2]);
 				r_matrix_pop(m);
 			}
@@ -361,9 +404,9 @@ STypeInState seduce_manipulator_scale(BInputState *input, RMatrix *m, float *pos
 				a[1] = move[2];
 				a[2] = 0;
 				if(parts[3])
-					seduce_object_3d_draw(input, move[1], move[2], 0, scale * 0.015 * -tmp[2], SUI_3D_OBJECT_SCALE_PLAIN, 1, &color[4]);
+					seduce_object_3d_draw(input, move[1], move[2], 0, scale * 0.015 * -tmp[2], SEDUCE_OBJECT_HANDLE_SCALE_PLAIN, 1, &color[4]);
 				else
-					seduce_object_3d_draw(input, move[1], move[2], 0, scale * 0.015 * -tmp[2], SUI_3D_OBJECT_SCALE_PLAIN, 1, NULL);
+					seduce_object_3d_draw(input, move[1], move[2], 0, scale * 0.015 * -tmp[2], SEDUCE_OBJECT_HANDLE_SCALE_PLAIN, 1, NULL);
 				seduce_element_add_point(input, id, 3, a, scale * 0.015 * -tmp[2]);
 				r_matrix_pop(m);
 			}
@@ -376,9 +419,9 @@ STypeInState seduce_manipulator_scale(BInputState *input, RMatrix *m, float *pos
 				a[1] = 0;
 				a[2] = 0;
 				if(parts[2])
-					seduce_object_3d_draw(input, a[0], 0, 0, scale * 0.015 * -tmp[2], SUI_3D_OBJECT_SCALE_AXIS, 1, &color[0]);
+					seduce_object_3d_draw(input, a[0], 0, 0, scale * 0.015 * -tmp[2], SEDUCE_OBJECT_HANDLE_SCALE_AXIS, 1, &color[0]);
 				else
-					seduce_object_3d_draw(input, a[0], 0, 0, scale * 0.015 * -tmp[2], SUI_3D_OBJECT_SCALE_AXIS, 1, NULL);
+					seduce_object_3d_draw(input, a[0], 0, 0, scale * 0.015 * -tmp[2], SEDUCE_OBJECT_HANDLE_SCALE_AXIS, 1, NULL);
 				seduce_element_add_point(input, id, 2, a, scale * 0.015 * -tmp[2]);
 				r_matrix_pop(m);
 			}
@@ -390,9 +433,9 @@ STypeInState seduce_manipulator_scale(BInputState *input, RMatrix *m, float *pos
 				a[1] = move[2];
 				a[2] = 0;
 				if(parts[4])
-					seduce_object_3d_draw(input, move[0], move[2], 0, scale * 0.015 * -tmp[2], SUI_3D_OBJECT_SCALE_PLAIN, 1, &color[6]);
+					seduce_object_3d_draw(input, move[0], move[2], 0, scale * 0.015 * -tmp[2], SEDUCE_OBJECT_HANDLE_SCALE_PLAIN, 1, &color[6]);
 				else
-					seduce_object_3d_draw(input, move[0], move[2], 0, scale * 0.015 * -tmp[2], SUI_3D_OBJECT_SCALE_PLAIN, 1, NULL);
+					seduce_object_3d_draw(input, move[0], move[2], 0, scale * 0.015 * -tmp[2], SEDUCE_OBJECT_HANDLE_SCALE_PLAIN, 1, NULL);
 				seduce_element_add_point(input, id, 4, a, scale * 0.015 * -tmp[2]);
 				r_matrix_pop(m);
 			}

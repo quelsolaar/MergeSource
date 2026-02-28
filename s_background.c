@@ -25,6 +25,7 @@ typedef struct{
 	float *surface_buffer;
 	void *surface_pool;
 	uint shadow_length;
+	uint shadow_used;
 	float *shadow_buffer;
 	void *shadow_pool;
 	SeduceBackgroundImage *images;
@@ -52,6 +53,7 @@ uint s_background_shader_surface_point_locations[SEDUCE_SURFACE_CLICK_BUFFER_SIZ
 
 typedef struct{
 	float pos[2];
+	float vector[2];
 	float color[3];
 	float size;
 	float timer;
@@ -64,14 +66,22 @@ int seduce_surface_click_buffer_next = 0;
 
  void seduce_surface_click_buffer_update(BInputState *input)
  {
+	 float t;
 	uint i;
+
 	for(i = 0; i < SEDUCE_SURFACE_CLICK_BUFFER_SIZE; i++)
-		seduce_surface_click_buffer[i].timer += input->delta_time;
+	{
+		t = (1.0 - seduce_surface_click_buffer[i].timer) * input->delta_time;
+		seduce_surface_click_buffer[i].pos[0] += seduce_surface_click_buffer[i].vector[0] * t;
+		seduce_surface_click_buffer[i].pos[1] += seduce_surface_click_buffer[i].vector[1] * t;
+		seduce_surface_click_buffer[i].timer += input->delta_time * 0.5;
+	}
  }
 
 void seduce_surface_circle_spawn(BInputState *input, float x, float y, float size, void *id, uint part, float red, float green, float blue)
 {
-	if(seduce_surface_click_buffer[seduce_surface_click_buffer_next].timer > 1.0 / (float)(SEDUCE_SURFACE_CLICK_BUFFER_SIZE + 1))
+	return;
+	if(seduce_surface_click_buffer[seduce_surface_click_buffer_next].timer > 1.0 / (float)(SEDUCE_SURFACE_CLICK_BUFFER_SIZE))
 	{				
 		seduce_surface_click_buffer_next = (seduce_surface_click_buffer_next + 1) % SEDUCE_SURFACE_CLICK_BUFFER_SIZE;
 		seduce_surface_click_buffer[seduce_surface_click_buffer_next].color[0] = red;
@@ -79,6 +89,8 @@ void seduce_surface_circle_spawn(BInputState *input, float x, float y, float siz
 		seduce_surface_click_buffer[seduce_surface_click_buffer_next].color[2] = blue;
 		seduce_surface_click_buffer[seduce_surface_click_buffer_next].pos[0] = x;
 		seduce_surface_click_buffer[seduce_surface_click_buffer_next].pos[1] = y;
+		seduce_surface_click_buffer[seduce_surface_click_buffer_next].vector[0] = -x;
+		seduce_surface_click_buffer[seduce_surface_click_buffer_next].vector[1] = -y;
 		seduce_surface_click_buffer[seduce_surface_click_buffer_next].size = size;
 		seduce_surface_click_buffer[seduce_surface_click_buffer_next].timer = 0;
 		seduce_surface_click_buffer[seduce_surface_click_buffer_next].id = id;
@@ -89,6 +101,7 @@ void seduce_surface_circle_spawn(BInputState *input, float x, float y, float siz
 
 char *s_background_shader_surface_vertex2 =
 "uniform mat4 ModelViewProjectionMatrix;"
+"uniform mat4 ModelViewMatrix;"
 "attribute vec4 vertex;"
 "attribute vec4 color;"
 "varying vec2 vector1;"
@@ -124,6 +137,7 @@ char *s_background_shader_surface_vertex2 =
 "void main()"
 "{"
 "	vec3 v;"
+"	vec2 screen_space;"
 "	distance = 0.5;"//length(pointer.xy);"
 "	vector1 = (pointer.xy * -vec2(-1.5 + distance * 3.0) - vertex.xy) * vec2(2.0) * (2.0 + distance * -1.2);"
 "	vector2 = (pointer.xy * vec2(1.3) - vertex.xy) * vec2(2.60) * (1.2 + distance * -0.7);"
@@ -146,25 +160,26 @@ char *s_background_shader_surface_vertex2 =
 "	center = vertex.xy * vec2(0.4);"
 "	c = color;"
 "	gl_Position = ModelViewProjectionMatrix * vec4(vertex.xyz, 1.0);"
+"	screen_space = (ModelViewMatrix * vec4(vertex.xyz, 1.0)).xy;"
 "	timep = vertex.xy;"
 "	if(point_0_id < 0.0 || (point_0_id > vertex.a && point_0_id < vertex.a + 1.0))"	
-"		p0p = vertex.xy - point_0_pos.xy;"
+"		p0p = screen_space.xy - point_0_pos.xy;"
 "	else"
 "		p0p = vec2(10.0);"
 "	if(point_1_id < 0.0 || (point_1_id > vertex.a && point_1_id < vertex.a + 1.0))"	
-"		p1p = vertex.xy - point_1_pos.xy;"
+"		p1p = screen_space.xy - point_1_pos.xy;"
 "	else"
 "		p1p = vec2(10.0);"
 "	if(point_2_id < 0.0 || (point_2_id > vertex.a && point_2_id < vertex.a + 1.0))"	
-"		p2p = vertex.xy - point_2_pos.xy;"
+"		p2p = screen_space.xy - point_2_pos.xy;"
 "	else"
 "		p2p = vec2(10.0);"
 "	if(point_3_id < 0.0 || (point_3_id > vertex.a && point_3_id < vertex.a + 1.0))"	
-"		p3p = vertex.xy - point_3_pos.xy;"
+"		p3p = screen_space.xy - point_3_pos.xy;"
 "	else"
 "		p3p = vec2(10.0);"
 "	if(point_4_id < 0.0 || (point_4_id > vertex.a && point_4_id < vertex.a + 1.0))"	
-"		p4p = vertex.xy - point_4_pos.xy;"
+"		p4p = screen_space.xy - point_4_pos.xy;"
 "	else"
 "		p4p = vec2(10.0);"
 "}";
@@ -552,6 +567,7 @@ SeduceBackgroundObject *seduce_background_object_allocate()
 	obj->surface_buffer = malloc((sizeof *obj->surface_buffer) * obj->surface_length * 8 * 3);
 	obj->surface_pool = NULL;
 	obj->shadow_length = 0;
+	obj->shadow_used = 0;
 	obj->shadow_buffer = NULL;
 	obj->shadow_pool = NULL;
 	obj->images = NULL;
@@ -565,8 +581,26 @@ SeduceBackgroundObject *seduce_background_object_allocate()
 	return obj;
 }
 
+/*
+	uint surface_length;
+	uint surface_used;
+	float *surface_buffer;
+	void *surface_pool;
+	uint shadow_length;
+	float *shadow_buffer;
+	void *shadow_pool;
+	SeduceBackgroundImage *images;
+	uint image_length;
+	uint image_used;
+	SeduceBackgroundTriangle *triangles;
+	uint triangle_length;
+	uint triangle_used;
+	uint shader_id_max;
+*/
+
 void seduce_primitive_background_object_free(SeduceBackgroundObject *object)
 {
+	uint i;
 	if(object->surface_buffer != NULL)
 		free(object->surface_buffer);
 	if(object->surface_pool != NULL)
@@ -577,8 +611,18 @@ void seduce_primitive_background_object_free(SeduceBackgroundObject *object)
 		r_array_free(object->shadow_pool);
 	if(object->triangles != NULL)
 		free(object->triangles);
+	if(object->images != NULL)
+		free(object->images);
 	free(object);
 }
+
+void seduce_primitive_background_object_clear(SeduceBackgroundObject *object)
+{
+	object->triangle_used = 0;
+	object->image_used = 0;
+	object->surface_used = 0;
+}
+
 
 void seduce_background_shadow_add(SeduceBackgroundObject *object, float *list, uint count, boolean closed, float size)
 {
@@ -588,9 +632,18 @@ void seduce_background_shadow_add(SeduceBackgroundObject *object, float *list, u
 	run = count;
 	if(!closed)
 		run--;
-	object->shadow_length += run * 2 * 3;
-	object->shadow_buffer = realloc(object->shadow_buffer, (sizeof *object->shadow_buffer) * object->shadow_length * 4 * 2 * 3);
-	array = &object->shadow_buffer[(object->shadow_length - run * 2 * 3) * 4];
+	if(object->shadow_used + (run + 1) * 6 > object->shadow_length)
+	{
+		i = object->shadow_used;
+		object->shadow_used += (run + 1) * 6;
+		object->shadow_buffer = realloc(object->shadow_buffer, (sizeof *object->shadow_buffer) * object->shadow_used * 4);
+		array = &object->shadow_buffer[i << 2];
+		if(object->shadow_pool != NULL)
+		{
+			r_array_free(object->shadow_pool);
+			object->shadow_pool = NULL;
+		}
+	}
 	if(closed)
 	{
 		pos_a[1] = -(list[count * 2 - 2] - list[0]);
@@ -679,14 +732,19 @@ void seduce_background_shadow_square_add(SeduceBackgroundObject *object, float p
 
 void seduce_background_shape_add(SeduceBackgroundObject *object, void *id, uint part, float *list, uint count, float surface_r, float surface_g, float surface_b, float surface_a)
 {
-	float *array, *copy, normals[6], vec[2], f, dist, best;
+	float *array, *copy, copy_buffer[128], normals[6], vec[2], f, dist, best;
 	uint i, j, jj, found;
 	float f_id = -1.0;
 	float center[2];
 	if(object->surface_length < object->surface_used + count - 2)
 	{
-		object->surface_length = object->surface_used + count - 2;
+		object->surface_length = object->surface_used + count + 16;
 		object->surface_buffer = realloc(object->surface_buffer, (sizeof *object->surface_buffer) * object->surface_length * 8 * 3);
+		if(object->surface_pool != NULL)
+		{
+			r_array_free(object->surface_pool);
+			object->surface_pool = NULL;
+		}
 	}
 	if(id != NULL)
 	{
@@ -704,7 +762,10 @@ void seduce_background_shape_add(SeduceBackgroundObject *object, void *id, uint 
 	}
 	array = &object->surface_buffer[object->surface_used * 8 * 3];
 
-	copy = malloc((sizeof *copy) * count * 2);
+	if(count < 64)
+		copy = copy_buffer;
+	else
+		copy = malloc((sizeof *copy) * count * 2);
 	memcpy(copy, list, (sizeof *copy) * count * 2);
 	object->surface_used += 3 * (count - 2);
 	while(count > 2)
@@ -819,7 +880,8 @@ void seduce_background_shape_add(SeduceBackgroundObject *object, void *id, uint 
 		}
 		count--;
 	}
-	free(copy);
+	if(copy != copy_buffer)
+		free(copy);
 }
 
 
@@ -837,6 +899,11 @@ void seduce_background_quad_add(SeduceBackgroundObject *object, void *id, uint p
 	{
 		object->surface_length += 16;
 		object->surface_buffer = realloc(object->surface_buffer, (sizeof *object->surface_buffer) * object->surface_length * 8 * 3);
+		if(object->surface_pool != NULL)
+		{
+			r_array_free(object->surface_pool);
+			object->surface_pool = NULL;
+		}
 	}
 	if(id != NULL)
 	{
@@ -967,6 +1034,11 @@ void seduce_background_tri_add(SeduceBackgroundObject *object, void *id, uint pa
 	{
 		object->surface_length += 16;
 		object->surface_buffer = realloc(object->surface_buffer, (sizeof *object->surface_buffer) * object->surface_length * 8 * 3);
+		if(object->surface_pool != NULL)
+		{
+			r_array_free(object->surface_pool);
+			object->surface_pool = NULL;
+		}
 	}
 	array = &object->surface_buffer[object->surface_used * 8 * 3];
 	array[0] = a_x;
@@ -1040,6 +1112,11 @@ void seduce_background_tri_fade_add(SeduceBackgroundObject *object, void *id, ui
 	{
 		object->surface_length += 16;
 		object->surface_buffer = realloc(object->surface_buffer, (sizeof *object->surface_buffer) * object->surface_length * 8 * 3);
+		if(object->surface_pool != NULL)
+		{
+			r_array_free(object->surface_pool);
+			object->surface_pool = NULL;
+		}
 	}
 	array = &object->surface_buffer[object->surface_used * 8 * 3];
 	array[0] = a_x;
@@ -1218,8 +1295,8 @@ void seduce_background_circles_init()
 	r_array_load_vertex(s_background_circles_pool, NULL, array, 0, 6);
 	s_background_shader_circles = r_shader_create_simple(buffer, 2048, s_background_shader_circles_vertex, s_background_shader_circles_fragment, "background circles");
 	r_shader_texture_set(s_background_shader_circles, 0, seduce_line_texture_id);
-	r_shader_state_set_blend_mode(s_background_shader_circles, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-	r_shader_state_set_depth_test(s_background_shader_circles, GL_ALWAYS);
+	r_shader_state_set_blend_mode(s_background_shader_circles, R_BM_ONE, R_BM_ONE_MINUS_SRC_ALPHA);
+	r_shader_state_set_depth_test(s_background_shader_circles, R_DT_ALWAYS);
 	r_shader_state_set_mask(s_background_shader_circles, TRUE, TRUE, TRUE, TRUE, FALSE);
 	s_background_shader_surface2 = r_shader_create_simple(buffer, 2048, s_background_shader_surface_vertex2, s_background_shader_surface_fragment2, "background surface");
 	
@@ -1240,19 +1317,19 @@ void seduce_background_circles_init()
 
 
 
-	r_shader_state_set_blend_mode(s_background_shader_surface2, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-	r_shader_state_set_depth_test(s_background_shader_surface2, GL_ALWAYS);
+	r_shader_state_set_blend_mode(s_background_shader_surface2, R_BM_ONE, R_BM_ONE_MINUS_SRC_ALPHA);
+	r_shader_state_set_depth_test(s_background_shader_surface2, R_DT_ALWAYS);
 
 	
 	s_background_shader_image = r_shader_create_simple(buffer, 2048, s_background_shader_image_vertex, s_background_shader_image_fragment, "background image");
 	r_shader_texture_set(s_background_shader_image, 0, seduce_line_texture_id);
-	r_shader_state_set_blend_mode(s_background_shader_image, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-	r_shader_state_set_depth_test(s_background_shader_image, GL_ALWAYS);
+	r_shader_state_set_blend_mode(s_background_shader_image, R_BM_ONE, R_BM_ONE_MINUS_SRC_ALPHA);
+	r_shader_state_set_depth_test(s_background_shader_image, R_DT_ALWAYS);
 
 	s_background_shader_shadow = r_shader_create_simple(buffer, 2048, s_background_shader_shadow_vertex, s_background_shader_shadow_fragment, "background surface");
-	r_shader_state_set_blend_mode(s_background_shader_shadow, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+	r_shader_state_set_blend_mode(s_background_shader_shadow, R_BM_ONE, R_BM_ONE_MINUS_SRC_ALPHA);
 	r_shader_state_set_mask(s_background_shader_shadow, TRUE, TRUE, TRUE, TRUE, FALSE);
-	r_shader_state_set_depth_test(s_background_shader_shadow, GL_ALWAYS);
+	r_shader_state_set_depth_test(s_background_shader_shadow, R_DT_ALWAYS);
 }
 
 
@@ -1265,17 +1342,15 @@ extern uint particle_debug_texture_id;
 
 void seduce_primitive_shadow_draw(SeduceBackgroundObject *object, float time)
 {
-	if(time < 0.6)
+	if(time < 0.6 || object->shadow_used == 0)
 		return;
 	time = (time - 0.6) / 0.4;
 	if(object->shadow_pool == NULL)
 	{
 		uint size = 4, i;
 		RFormats types = R_FLOAT;
-		if(object->shadow_length == 0)
-			return;
-		object->shadow_pool = r_array_allocate(object->shadow_length, &types, &size, 1, 0);
-		r_array_load_vertex(object->shadow_pool, NULL, object->shadow_buffer, 0, object->shadow_length);
+		object->shadow_pool = r_array_allocate(object->shadow_used, &types, &size, 1, 0);
+		r_array_load_vertex(object->shadow_pool, NULL, object->shadow_buffer, 0, object->shadow_used);
 		free(object->shadow_buffer);
 		object->shadow_buffer = NULL;
 	}
@@ -1295,19 +1370,16 @@ void seduce_primitive_surface_draw(BInputState *input, SeduceBackgroundObject *o
 	if(time < 0.001 || input->mode != BAM_DRAW)
 		return;
 		
-	if(object->surface_pool == NULL)
+	if(object->surface_pool == NULL && object->surface_used != 0)
 	{
 		uint size[3] = {4, 4}, i;
 		RFormats types[3] = {R_FLOAT, R_FLOAT};
-		if(object->surface_used != 0)
-		{
-			object->surface_pool = r_array_allocate(object->surface_used * 3, types, size, 2, 0);
-			r_array_load_vertex(object->surface_pool, NULL, object->surface_buffer, 0, object->surface_used * 3);
-			object->surface_used = 0;
-			object->surface_length = 0;
-			free(object->surface_buffer);
-			object->surface_buffer = NULL;
-		}
+		object->surface_pool = r_array_allocate(object->surface_used * 3, types, size, 2, 0);
+		r_array_load_vertex(object->surface_pool, NULL, object->surface_buffer, 0, object->surface_used * 3);
+		object->surface_used = 0;
+		object->surface_length = 0;
+		free(object->surface_buffer);
+		object->surface_buffer = NULL;
 	}
 	if(object->surface_pool != NULL)
 	{
@@ -1387,8 +1459,8 @@ void seduce_primitive_surface_draw(BInputState *input, SeduceBackgroundObject *o
 				r_shader_float_set(s_background_shader_surface2, s_background_shader_surface_point_locations[i][1], 0);
 			else
 			{
-				f = 1.0 - seduce_surface_click_buffer[ii].timer;
-				r_shader_float_set(s_background_shader_surface2, s_background_shader_surface_point_locations[i][1], (1.0 - f * f) * seduce_surface_click_buffer[ii].size);
+			//	f = 1.0 - seduce_surface_click_buffer[ii].timer;
+				r_shader_float_set(s_background_shader_surface2, s_background_shader_surface_point_locations[i][1], ((1.0 - seduce_surface_click_buffer[ii].timer) * seduce_surface_click_buffer[ii].timer) * seduce_surface_click_buffer[ii].size);
 			}
 			
 			if(seduce_surface_click_buffer[ii].timer > 0.6)
@@ -1413,6 +1485,7 @@ void seduce_primitive_surface_draw(BInputState *input, SeduceBackgroundObject *o
 	}
 	if(object->images != 0)
 	{
+		t = time;
 		if(s_background_pool_image == NULL)
 		{
 			uint size = 2;
@@ -1444,9 +1517,7 @@ void seduce_primitive_surface_draw(BInputState *input, SeduceBackgroundObject *o
 		{
 			uint j;
 			r_array_load_vertex(s_background_pool_image, NULL, object->images[i].array, 0, 6);
-			for(j = 0; j < 8; j++)
-				printf("draw[%u] = %f\n", j, object->images[i].array[j]);
-			r_shader_texture_set(s_background_shader_image, 2, object->images[i].texture_id);
+			r_shader_texture_set(s_background_shader_image, 1, object->images[i].texture_id);
 			r_shader_vec2_set(s_background_shader_image, r_shader_uniform_location(s_background_shader_image, "origo"), object->images[i].origo[0], object->images[i].origo[1]);	
 			r_shader_vec2_set(s_background_shader_image, r_shader_uniform_location(s_background_shader_image, "stretch"), 1.0 / object->images[i].scale[0], 1.0 / object->images[i].scale[1]);	
 			r_array_draw(s_background_pool_image, NULL, R_PRIMITIVE_TRIANGLES, 0, 6, NULL, NULL, 1);
@@ -1490,7 +1561,7 @@ void seduce_primitive_background_flare_draw(float x, float y, float z, float tim
 	for(i = 0 ; i < 3; i++)
 	{
 		r_matrix_translate(NULL, 0, 0, 0.05 + 0.05 * t);
-		brightness = time * (1 - time) * (1 - time) * 10.0;
+		brightness = time * (1 - time) * (1 - time) * 10;
 		r_shader_vec4_set(s_background_shader_circles, r_shader_uniform_location(s_background_shader_circles, "flare_color"), flare_colors[i * 4 + 0] * brightness, flare_colors[i * 4 + 1] * brightness, flare_colors[i * 4 + 2] * brightness, flare_colors[i * 4 + 3] * brightness);
 		r_shader_float_set(s_background_shader_circles, r_shader_uniform_location(s_background_shader_circles, "fill"), 0.001);
 		r_shader_float_set(s_background_shader_circles, r_shader_uniform_location(s_background_shader_circles, "scroll"), size * -time + (float)i / 4.0 + sin(input->minute_time * PI * 2 + (float)i * PI * 1.5) * 0.2);
@@ -1553,11 +1624,11 @@ void seduce_background_popup_element(SeduceBackgroundObject *obj, void *id, uint
 
 #define SEDUCE_POPUP_HORIZONTAL_MIN_SIZE 0.06
 
-uint seduce_popup(BInputState *input, void *id, SUIPUElement *elements, uint count, float time)
+uint seduce_popup(BInputState *input, void *id, SUIPUElement *elements, uint count, float time, boolean release_only)
 {
 	SeduceBackgroundObject *obj;
 	uint i, j, k, length, type[2] = {S_PUT_TOP, S_PUT_BOTTOM}, type_count[S_PUT_COUNT], element, image_start, output = -1, part;
-	float pos, shadow[4] = {0.08, 0, -0.08, 0}, f, size, gap = 0, square_size, square_dist, vec[12], rnd, color[4] = {0.0, 0.0, 0.0, 0.9}, selected[4] = {0.2, 0.6, 1.0, 0.9}, *c, center[3] = {1.0, 1.0, 1.0}, text[3] = {1.0, 1.0, 1.0}, list[12];
+	float pos, shadow[4] = {0.08, 0, -0.08, 0}, f, size, gap = 0, square_size, square_dist, vec[12], rnd, color[4] = {0.2, 0.2, 0.2, 0.9}, selected[4] = {0.2, 0.6, 1.0, 0.9}, *c, center[3] = {1.0, 1.0, 1.0}, text[3] = {1.0, 1.0, 1.0}, list[12], slant[2];
 	obj = seduce_background_object_allocate();
 	gap = 0.002 + (1.0 - time) * 0.02;
 	gap = 0.002 + (1.0 - time) * 0.02;
@@ -1572,6 +1643,11 @@ uint seduce_popup(BInputState *input, void *id, SUIPUElement *elements, uint cou
 	
 		for(i = 0; i < count; i++)
 		{
+				rnd = f_randnf(i) * (1.0 - time) * 0.2;
+				if(seduce_element_active(input, id, &part) && i == part)
+					c = selected;
+				else
+					c = color; 
 			if(elements[i].type == S_PUT_ANGLE)
 			{
 				vec[0] = sin(elements[i].data.angle[0] / 180.0 * PI);
@@ -1587,11 +1663,7 @@ uint seduce_popup(BInputState *input, void *id, SUIPUElement *elements, uint cou
 					f = 0.09;
 				else
 					f = 0.06;
-				rnd = f_randnf(i) * (1.0 - time) * 0.2;
-				if(seduce_element_active(input, id, &part) && i == part)
-					c = selected;
-				else
-					c = color; 
+
 				list[0] = vec[0] * 0.07 + vec[1] * gap * 0.5; 
 				list[1] = vec[1] * 0.07 - vec[0] * gap * 0.5;
 				list[2] = vec[0] * 0.19 + vec[1] * gap * 0.5; 
@@ -1625,6 +1697,37 @@ uint seduce_popup(BInputState *input, void *id, SUIPUElement *elements, uint cou
 				vec[10] = vec[7] * 0.06;
 				vec[11] = vec[8] * 0.06;
 				seduce_element_add_quad(input, id, i, &vec[0], &vec[3], &vec[9], &vec[6]);
+			}
+			if(elements[i].type == S_PUT_BUTTON)
+			{
+				if(elements[i].data.button_pos[0] * elements[i].data.button_pos[0] < elements[i].data.button_pos[1] * elements[i].data.button_pos[1])
+				{
+					slant[0] = (elements[i].data.button_pos[0] - 0.06) * 0.015 / elements[i].data.button_pos[1];
+					slant[1] = (elements[i].data.button_pos[0] + 0.06) * 0.015 / elements[i].data.button_pos[1];
+					seduce_background_quad_add(obj, id, i,
+										elements[i].data.button_pos[0] - 0.06 - slant[0], elements[i].data.button_pos[1] - 0.015, 0, 
+										elements[i].data.button_pos[0] - 0.06 + slant[0], elements[i].data.button_pos[1] + 0.015, 0, 
+										elements[i].data.button_pos[0] + 0.06 + slant[1], elements[i].data.button_pos[1] + 0.015, 0, 
+										elements[i].data.button_pos[0] + 0.06 - slant[1], elements[i].data.button_pos[1] - 0.015, 0,
+										   c[0], c[1], c[2], c[3]);	
+				}else
+				{
+					slant[0] = (elements[i].data.button_pos[1]) * -0.015 / elements[i].data.button_pos[0];
+					slant[1] = (elements[i].data.button_pos[1]) * -0.015 / elements[i].data.button_pos[0];
+					seduce_background_quad_add(obj, id, i,
+											elements[i].data.button_pos[0] - 0.08 - slant[0], elements[i].data.button_pos[1] - 0.015, 0, 
+											elements[i].data.button_pos[0] - 0.1, elements[i].data.button_pos[1], 0, 
+											elements[i].data.button_pos[0] + 0.1, elements[i].data.button_pos[1], 0, 
+											elements[i].data.button_pos[0] + 0.08 - slant[1], elements[i].data.button_pos[1] - 0.015, 0,
+											   c[0], c[1], c[2], c[3]);	
+					seduce_background_quad_add(obj, id, i,
+											elements[i].data.button_pos[0] - 0.1, elements[i].data.button_pos[1], 0, 
+											elements[i].data.button_pos[0] - 0.08 + slant[0], elements[i].data.button_pos[1] + 0.015, 0, 
+											elements[i].data.button_pos[0] + 0.08 + slant[1], elements[i].data.button_pos[1] + 0.015, 0, 
+											elements[i].data.button_pos[0] + 0.1, elements[i].data.button_pos[1], 0,
+											   c[0], c[1], c[2], c[3]);	
+				}
+
 			}
 		}
 
@@ -1745,8 +1848,8 @@ uint seduce_popup(BInputState *input, void *id, SUIPUElement *elements, uint cou
 			shadow[1] = shadow[3] = pos;
 			pos -= 0.03; 
 		}	
+	//	seduce_primitive_background_flare_draw(0, 0, 0, time * 0.7, 0.3);
 		seduce_primitive_surface_draw(input, obj, time);	
-	//	seduce_primitive_background_flare_draw(0, 0, 0, time * 0.7, 0.4);
 		seduce_primitive_background_object_free(obj);
 
 
@@ -1769,6 +1872,8 @@ uint seduce_popup(BInputState *input, void *id, SUIPUElement *elements, uint cou
 					r_matrix_pop(NULL);
 				}
 			}
+			if(elements[i].type == S_PUT_BUTTON)
+				seduce_text_line_draw(NULL, elements[i].data.button_pos[0] - seduce_text_line_length(NULL, SEDUCE_T_SIZE, SEDUCE_T_SPACE, elements[i].text, -1) * 0.5, elements[i].data.button_pos[1] - SEDUCE_T_SIZE * 0.75, SEDUCE_T_SIZE, SEDUCE_T_SPACE, elements[i].text, 1, 1, 1, 1, -1);
 		}
 	
 		pos = 0.07;
@@ -1853,21 +1958,22 @@ uint seduce_popup(BInputState *input, void *id, SUIPUElement *elements, uint cou
 	}
 	if(input->mode == BAM_EVENT)
 	{
+		seduce_surface_circle_spawn(input, input->pointers[0].pointer_x, input->pointers[0].pointer_y, 1, NULL, 0, 0.1, 0.1, 0.1); // FIX ME
 		for(i = 0; i < input->pointer_count; i++)
 		{
-			if(input->pointers[i].button[0] && !input->pointers[i].last_button[0])
+			if(!release_only || (input->pointers[i].button[0] && !input->pointers[i].last_button[0]))
 			{
 				output = SEDUCE_POP_UP_DEACTIVATE;
 				if(id == seduce_element_pointer_id(input, i, &j))
 				{
-					seduce_surface_circle_spawn(input, input->pointers[i].pointer_x, input->pointers[i].pointer_y, 1, NULL, 0, 1, 1, 1);
+					seduce_surface_circle_spawn(input, input->pointers[i].pointer_x, input->pointers[i].pointer_y, 1, NULL, 0, 0.1, 0.1, 0.1);
 					return j;
 				}
 			}				
 		}
-		for(i = 0; i < input->button_event_count; i++)
+		for(i = 0; !release_only || i < input->button_event_count; i++)
 		{
-			if(input->button_event[i].state && (input->button_event[i].button == BETRAY_BUTTON_FACE_A || input->button_event[i].button == BETRAY_BUTTON_YES))
+			if(!release_only || (input->button_event[i].state && (input->button_event[i].button == BETRAY_BUTTON_FACE_A || input->button_event[i].button == BETRAY_BUTTON_YES)))
 			{
 				uint axis;
 				axis = seduce_element_primary_axis(input, input->button_event[i].user_id);
@@ -1880,6 +1986,8 @@ uint seduce_popup(BInputState *input, void *id, SUIPUElement *elements, uint cou
 					if(id == seduce_element_colission_test(input->axis[axis].axis, &j, input->axis[axis].user_id))
 						return j;
 				}
+				if(!release_only)
+					break;
 			}				
 		}
 	}

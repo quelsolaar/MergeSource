@@ -205,6 +205,9 @@ void r_shader_state_set(RState *state)
 void r_shader_state_set_depth_test(RShader *shader, uint depth_test) 
 {
 	uint i;
+	uint translation_opengl[] = {0x0201, 0x0202, 0x0203, 0x0204, 0x0205, 0x0206, 0x0207};
+	depth_test = translation_opengl[depth_test];
+
 	if(r_shader_presets_get(P_SP_COLOR_UNIFORM) == shader)
 		i = 0;
 
@@ -235,6 +238,9 @@ void r_shader_state_set_cull_face(RShader *shader, uint cull_face)
 
 void r_shader_state_set_blend_mode(RShader *shader, uint blend_source, uint blend_destination) 
 {
+	uint32 r_shader_blendmoge_opengl_translatiokn[] = {0, 1, 0x0300, 0x0301, 0x0302, 0x0303, 0x0304, 0x030, 0x0306, 0x0307, 0x0308};	
+	blend_source = r_shader_blendmoge_opengl_translatiokn[blend_source];
+	blend_destination = r_shader_blendmoge_opengl_translatiokn[blend_destination];
 	if(r_current_shader == shader)
 		glBlendFunc(blend_source, blend_destination);
 	shader->state.blend_dest = blend_destination;
@@ -613,13 +619,13 @@ void r_shader_debug_override(char *shaders, uint stages)
 	r_shader_debug_override_stage = stages;
 }
 
-void *r_shader_create(char *debug_output, uint output_size, char **shaders, uint *stages, uint stage_count, char *name, char *instance_block)
+void *r_shader_create_internal(char *debug_output, uint output_size, char **shaders, uint *stages, uint stage_count, char *name, char *instance_block, char *file, uint line)
 {
 	static RShaderInput *input = NULL;
-	uint stage_obj[R_MAX_SHADER_STAGES], prog_obj, i, j, size = 0, add_size = 0, input_count, bind_point, texture_count;
+	uint stage_obj[R_MAX_SHADER_STAGES], prog_obj, i, j, size = 0, add_size = 0, input_count, bind_point, texture_count, line_number;
 	int status;
 	RShader *shader;
-	char *text[2], *output[R_MAX_SHADER_STAGES];
+	char *text[2], *output[R_MAX_SHADER_STAGES], link_test[2];
 	if(input == NULL)
 		input = malloc((sizeof *input) * 256);
 	if(R_MAX_SHADER_STAGES < stage_count)
@@ -628,25 +634,28 @@ void *r_shader_create(char *debug_output, uint output_size, char **shaders, uint
 		return NULL;
 	}
 	shader = malloc(sizeof *shader);
+	r_draw_asset_track(RELINQUISH_AT_SHADER, shader, 1, file, line);
 	shader->uniforms = NULL; 
 	shader->mode = R_SIM_UNIFORM_BLOCK;
-	if(r_glBindBufferBase != NULL) /* Test if uniffom bocks are available */
+	if(r_glBindBufferBase != NULL) /* Test if uniform bocks are available */
 	{
 		shader->mode = R_SIM_UNIFORM_BLOCK;
 //		shader->mode = R_SIM_BUFFER_OBJECT;
 	}else
 		shader->mode = R_SIM_FLAT;
-	shader->mode = R_SIM_FLAT;
+//	shader->mode = R_SIM_FLAT;
 //	shader->mode = 0;
 	for(i = 0; i < 31 && name[i] != 0; i++)
 		shader->name[i] = name[i];
     shader->name[i] = 0;
+//	r_shader_glsl_version = 330;
     input_count = r_parse_shaders(output, shaders, stages, stage_count, input, shader->mode, r_shader_glsl_version, FALSE, instance_block, &shader->instance_block);
 /*	output[0] = experimental_shader_vertex_test2;
 	output[1] = experimental_shader_fragment_test2;*/
 
-/*	for(j = 0; j < stage_count; j++)
-		printf(shaders[j]);*/
+//	for(j = 0; j < stage_count; j++)
+//		printf(output[j]);
+
 	if(r_shader_debug_override_stage < stage_count)
 	{
 		output[r_shader_debug_override_stage] = r_shader_debug_override_shader;
@@ -660,42 +669,58 @@ void *r_shader_create(char *debug_output, uint output_size, char **shaders, uint
 	//	text[0] = shaders[i];
         read = output[i];
 		stage_obj[i] = r_glCreateShaderObjectARB(stages[i]);
+
 		r_glShaderSourceARB(stage_obj[i], 1, text/*(const char **)&vertex*/, NULL);
+
 		r_glCompileShaderARB(stage_obj[i]);
+
 		r_glGetShaderivARB(stage_obj[i], GL_COMPILE_STATUS, &status);
-
-
-	/*	{
-			char log[2048];
-			uint size = 2048;
-			r_glGetShaderInfoLog(stage_obj[i], 2048, &size, log);
-			printf("LOG: %s\n", log);
-		}*/
 
 		if(!status)
 		{
-			if(debug_output == NULL)
+#ifdef FORGE_RELEASE_BUILD
+			if(debug_output != NULL)
+#endif	
 			{
-				output_size = 1024;
-				debug_output = malloc(output_size);
+				if(debug_output == NULL)
+				{
+					output_size = 1024 * 256;
+					debug_output = malloc(output_size);
+				}
+				sprintf(debug_output, "RELINQUISH: Shader Debug: %s\n", name);			
+				for(add_size = 0; debug_output[add_size] != 0; add_size++);
+				output_size -= add_size;
+				r_glGetShaderInfoLog(stage_obj[i], output_size, &size, &debug_output[add_size]);
+				add_size += size;
+				output_size -= size;
+				output_size--;
+				line_number = 2;
+				debug_output[add_size++] = '0';
+				debug_output[add_size++] = '0';
+				debug_output[add_size++] = '0';
+				debug_output[add_size++] = '1';
+				debug_output[add_size++] = ':';
+				debug_output[add_size++] = ' ';
+				for(j =  0; add_size < output_size; j++)
+				{
+					debug_output[add_size++] = read[j];
+					if(read[j] == '\n' && add_size + 6 < output_size)
+					{
+						debug_output[add_size++] = '0' + (line_number / 1000) % 10;
+						debug_output[add_size++] = '0' + (line_number / 100) % 10;
+						debug_output[add_size++] = '0' + (line_number / 10) % 10;
+						debug_output[add_size++] = '0' + line_number % 10;
+						debug_output[add_size++] = ':';
+						debug_output[add_size++] = ' ';
+						line_number++;
+					}
+				}
+				debug_output[add_size] = '\0';
+				printf("%s", debug_output);
 			}
-			sprintf(debug_output, "RELINQUISH: Shader Debug: %s\n", name);
-			
-			for(j = 0; j < stage_count; j++)
-				printf(output[j]);
-	//			printf(shaders[j]);
-
-			for(add_size = 0; debug_output[add_size] != 0; add_size++);
-			output_size -= add_size;
-			r_glGetShaderInfoLog(stage_obj[i], output_size, &size, &debug_output[add_size]);
-			add_size += size;
-			output_size -= size;
 			for(j = 0; j < i + 1; j++)
-				r_glDeleteObjectARB(stage_obj[j]);
-			
-			printf(debug_output);
-			exit(0);
-		//	free(debug_output);
+				r_glDeleteObjectARB(stage_obj[j]);			
+				
 			for(i = 0; i < stage_count; i++)
 				if(output[i] != r_shader_debug_override_shader)
 					free(output[i]);
@@ -739,20 +764,25 @@ void *r_shader_create(char *debug_output, uint output_size, char **shaders, uint
 					shader->buffer_input_component_types[shader->buffer_output_component_count++] = input[j].type;
 				}
 			}
-			r_glTransformFeedbackVaryings(prog_obj, output_count, names, GL_INTERLEAVED_ATTRIBS);
+			if(output_count != 0)
+				r_glTransformFeedbackVaryings(prog_obj, output_count, names, GL_INTERLEAVED_ATTRIBS);
 		}
 	}
-
+r_extension_error();
 	r_glLinkProgramARB(prog_obj);
-	r_glGetProgramivARB(prog_obj, GL_LINK_STATUS, &status);
-	if(!status)
+r_extension_error();
+//	r_glGetProgramivARB(prog_obj, GL_LINK_STATUS, &status);
+r_extension_error();
+	size = 2;
+	r_glGetProgramInfoLog(prog_obj, 2, &size, link_test);
+	if(link_test[0] != '\0')
 	{
 		if(debug_output == NULL)
 		{
-			output_size = 1024;
+			output_size = 10240;
 			debug_output = malloc(output_size);
 		}
-		sprintf(debug_output, "RELINQUISH: Link Program Debug: %s\n", name);
+		sprintf(debug_output, "Error: RELINQUISH: Link Program Debug: %s\n", name);
 		for(add_size = 0; debug_output[add_size] != 0; add_size++);
 		output_size -= add_size;
 		r_glGetProgramInfoLog(prog_obj, output_size, &size, &debug_output[add_size]);
@@ -762,7 +792,6 @@ void *r_shader_create(char *debug_output, uint output_size, char **shaders, uint
 		for(i = 0; i < stage_count; i++)
 			r_glDeleteObjectARB(stage_obj[i]);
 		printf(debug_output);
-		exit(0);
 		r_glDeleteObjectARB(prog_obj);
 		free(shader);
 		for(i = 0; i < stage_count; i++)
@@ -770,7 +799,9 @@ void *r_shader_create(char *debug_output, uint output_size, char **shaders, uint
 				free(output[i]);
 		return NULL;
 	}
+r_extension_error();
 	r_glUseProgramObjectARB(prog_obj);
+r_extension_error();
 //	r_experimental_print_uniforms(prog_obj);
 	
 	for(i = 0; i < input_count; i++)
@@ -863,10 +894,11 @@ void *r_shader_create(char *debug_output, uint output_size, char **shaders, uint
 	for(i = 0; i < stage_count; i++)
 		if(output[i] != r_shader_debug_override_shader)
 			free(output[i]);
+r_extension_error();
 	return shader;
 }
 
-void *r_shader_create_simple(char *debug_output, uint output_size, char *vertex, char *fragment, char *name)
+void *r_shader_create_simple_internal(char *debug_output, uint output_size, char *vertex, char *fragment, char *name, char *file, uint line)
 {
 	char *shaders[2];
 	uint stages[2];
@@ -874,11 +906,11 @@ void *r_shader_create_simple(char *debug_output, uint output_size, char *vertex,
 	stages[1] = GL_FRAGMENT_SHADER_ARB;
 	shaders[0] = vertex;
 	shaders[1] = fragment;
-	return r_shader_create(debug_output, output_size, shaders, stages, 2, name, NULL);
+	return r_shader_create_internal(debug_output, output_size, shaders, stages, 2, name, NULL, file, line);
 }
 
 
-void *r_shader_create_from_file(char *debug_output, uint output_size, char *vertex_file, char *fragment_file, char *name)
+void *r_shader_create_from_file_internal(char *debug_output, uint output_size, char *vertex_file, char *fragment_file, char *name, char *file, uint line)
 {
 	RShader	*shader;
 	uint size;
@@ -909,7 +941,7 @@ void *r_shader_create_from_file(char *debug_output, uint output_size, char *vert
 	fragment[size] = 0;
 //	printf(fragment);
 //	printf(vertex);
-	shader = r_shader_create_simple(debug_output, output_size, vertex, fragment, name);
+	shader = r_shader_create_simple_internal(debug_output, output_size, vertex, fragment, name, file, line);
 	free(fragment);
 	free(vertex);
 	return shader;
@@ -917,6 +949,7 @@ void *r_shader_create_from_file(char *debug_output, uint output_size, char *vert
 
 void r_shader_destroy(RShader	*s)
 {
+	r_draw_asset_untrack(RELINQUISH_AT_SHADER, s, 1);
 	if(s->attributes != NULL)
 		free(s->attributes);
 	if(s->uniforms != NULL)
@@ -927,7 +960,7 @@ void r_shader_destroy(RShader	*s)
 	free(s);
 }
 
-
+extern void r_extension_error(void);
 
 boolean r_shader_set(RShader *s)
 {
@@ -942,10 +975,13 @@ boolean r_shader_set(RShader *s)
 	}
 	if(r_current_shader != s)
 	{
+
 		r_shader_state_set(&s->state);
 		r_glUseProgramObjectARB(s->program);
+		r_extension_error();
 		r_current_shader = s;
-	}
+	}else
+		return TRUE;
 	return TRUE;
 }
 
@@ -1000,12 +1036,12 @@ uint r_shader_output_fomat_count_get(RShader *s)
 	return s->buffer_output_component_count;
 }
 
-void *r_array_allocate(uint vertex_count, RFormats *vertex_format_types, uint *vertex_format_size, uint vertex_format_count, uint reference_count);
+void *r_array_allocate_internal(uint vertex_count, RFormats *vertex_format_types, uint *vertex_format_size, uint vertex_format_count, uint reference_count, char *file, uint line);
 
-void *r_array_allocate_from_shader(RShader *s, uint vertex_count, uint reference_count, boolean in)
+void *r_array_allocate_from_shader_internal(RShader *s, uint vertex_count, uint reference_count, boolean in, char *file, uint line)
 {
 	if(in)
-		return r_array_allocate(vertex_count, s->buffer_input_component_types, NULL, s->buffer_input_component_count, reference_count);
+		return r_array_allocate_internal(vertex_count, s->buffer_input_component_types, NULL, s->buffer_input_component_count, reference_count, file, line);
 	else
-		return r_array_allocate(vertex_count, s->buffer_output_component_types, NULL, s->buffer_output_component_count, reference_count);
+		return r_array_allocate_internal(vertex_count, s->buffer_output_component_types, NULL, s->buffer_output_component_count, reference_count, file, line);
 }

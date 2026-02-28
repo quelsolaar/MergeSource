@@ -1,7 +1,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include "seduce.h"
-#include "s_draw_3d.h"
+
 
 extern SViewData sui_default_view;
 
@@ -94,14 +94,17 @@ STypeInState	seduce_manipulator_point(BInputState *input, RMatrix *m, float *pos
 				}
 			}
 			if(active)
-				seduce_object_3d_draw(input, tmp[0], tmp[1], 0, scale * 0.025, SUI_3D_OBJECT_MOVE_3D, 1, color);
+				seduce_object_3d_draw(input, tmp[0], tmp[1], 0, scale * 0.025, SEDUCE_OBJECT_HANDLE_MOVE_3D, 1, color);
 			else
-				seduce_object_3d_draw(input, tmp[0], tmp[1], 0, scale * 0.025, SUI_3D_OBJECT_MOVE_3D, 1, NULL);
+				seduce_object_3d_draw(input, tmp[0], tmp[1], 0, scale * 0.025, SEDUCE_OBJECT_HANDLE_MOVE_3D, 1, NULL);
 			r_matrix_set(m);
 			seduce_element_add_point(input, id, 0, pos, scale * 0.025 * tmp[2]);
 			r_matrix_set(reset);
 		}
 	}
+
+	if(grab[0].active)
+		grab[0].active += 0;
 
 	if(input->mode == BAM_EVENT)
 	{
@@ -110,6 +113,7 @@ STypeInState	seduce_manipulator_point(BInputState *input, RMatrix *m, float *pos
 			if(!input->pointers[i].button[0] && grab[i].active && grab[i].id == id)
 			{
 				grab[i].active = FALSE;
+				grab[i].id = NULL;
 				return S_TIS_DONE;
 			}
 			if(grab[i].id == id && grab[i].active)
@@ -144,6 +148,7 @@ STypeInState	seduce_manipulator_point(BInputState *input, RMatrix *m, float *pos
 				if(!a_button[i] && grab[i + pointer_count].active && grab[i + pointer_count].id == id)
 				{
 					grab[i + pointer_count].active = FALSE;
+					grab[i + pointer_count].id = NULL;
 					return S_TIS_DONE;
 				}
 				if(grab[i + pointer_count].id == id && grab[i + pointer_count].active)
@@ -172,7 +177,8 @@ STypeInState	seduce_manipulator_point(BInputState *input, RMatrix *m, float *pos
 			}
 		}
 	}
-
+	if(grab[0].active)
+		grab[0].active += 0;
 	if(input->mode == BAM_MAIN && frame_id != input->frame_number)
 	{
 		frame_id = input->frame_number;
@@ -187,7 +193,8 @@ STypeInState	seduce_manipulator_point(BInputState *input, RMatrix *m, float *pos
 				grab[i].timer -= input->delta_time * 2.5;
 		}
 	}
-
+	if(grab[0].active)
+		grab[0].active += 0;
 	for(i = 0; i < (pointer_count + user_count); i++)
 		if(grab[i].id == id && grab[i].active)
 			return S_TIS_ACTIVE;
@@ -276,9 +283,9 @@ STypeInState seduce_manipulator_pos_xyz(BInputState *input, RMatrix *m, float *p
 				r_matrix_push(m);
 				r_matrix_rotate(m, 3600.0 * input->minute_time + 180.0 * t, 1, 0, 0);
 				if(parts[0])
-					seduce_object_3d_draw(input, scale * 0.04 * tmp[2] + t, 0, 0, scale * 0.05 * -tmp[2], SUI_3D_OBJECT_AXIS_HANDLE, 1, &color[2]);
+					seduce_object_3d_draw(input, scale * 0.04 * tmp[2] + t, 0, 0, scale * 0.05 * -tmp[2], SEDUCE_OBJECT_HANDLE_AXIS, 1, &color[2]);
 				else
-					seduce_object_3d_draw(input, scale * 0.04 * tmp[2] + t, 0, 0, scale * 0.05 * -tmp[2], SUI_3D_OBJECT_AXIS_HANDLE, 1, NULL);
+					seduce_object_3d_draw(input, scale * 0.04 * tmp[2] + t, 0, 0, scale * 0.05 * -tmp[2], SEDUCE_OBJECT_HANDLE_AXIS, 1, NULL);
 				seduce_element_add_line(input, id, 0, a, b, scale * 0.04 * tmp[2]);
 				r_matrix_pop(m);
 			}
@@ -288,9 +295,9 @@ STypeInState seduce_manipulator_pos_xyz(BInputState *input, RMatrix *m, float *p
 				r_matrix_push(m);
 				r_matrix_rotate(m, 3600.0 * input->minute_time + 180.0 * t, 1, 0, 0);
 				if(parts[1])
-					seduce_object_3d_draw(input, scale * 0.04 * tmp[2] + t, 0, 0, scale * 0.05 * -tmp[2], SUI_3D_OBJECT_AXIS_HANDLE, 1, &color[1]);
+					seduce_object_3d_draw(input, scale * 0.04 * tmp[2] + t, 0, 0, scale * 0.05 * -tmp[2], SEDUCE_OBJECT_HANDLE_AXIS, 1, &color[1]);
 				else
-					seduce_object_3d_draw(input, scale * 0.04 * tmp[2] + t, 0, 0, scale * 0.05 * -tmp[2], SUI_3D_OBJECT_AXIS_HANDLE, 1, NULL);
+					seduce_object_3d_draw(input, scale * 0.04 * tmp[2] + t, 0, 0, scale * 0.05 * -tmp[2], SEDUCE_OBJECT_HANDLE_AXIS, 1, NULL);
 				seduce_element_add_line(input, id, 1, a, b, scale * 0.04 * tmp[2]);
 				r_matrix_pop(m);
 			}
@@ -300,9 +307,9 @@ STypeInState seduce_manipulator_pos_xyz(BInputState *input, RMatrix *m, float *p
 				r_matrix_push(m);
 				r_matrix_rotate(m, 3600.0 * input->minute_time + 180.0 * t, 1, 0, 0);
 				if(parts[2])
-					seduce_object_3d_draw(input, scale * 0.04 * tmp[2] + t, 0, 0, scale * 0.05 * -tmp[2], SUI_3D_OBJECT_AXIS_HANDLE, 1, &color[0]);
+					seduce_object_3d_draw(input, scale * 0.04 * tmp[2] + t, 0, 0, scale * 0.05 * -tmp[2], SEDUCE_OBJECT_HANDLE_AXIS, 1, &color[0]);
 				else
-					seduce_object_3d_draw(input, scale * 0.04 * tmp[2] + t, 0, 0, scale * 0.05 * -tmp[2], SUI_3D_OBJECT_AXIS_HANDLE, 1, NULL);
+					seduce_object_3d_draw(input, scale * 0.04 * tmp[2] + t, 0, 0, scale * 0.05 * -tmp[2], SEDUCE_OBJECT_HANDLE_AXIS, 1, NULL);
 				seduce_element_add_line(input, id, 2, a, b, scale * 0.04 * tmp[2]);
 				r_matrix_pop(m);
 			}
@@ -487,9 +494,9 @@ STypeInState seduce_manipulator_point_plane(BInputState *input, RMatrix *m, floa
 				reset = r_matrix_get();
 				seduce_widget_overlay_matrix(&draw_matrix);
 				if(active)
-					seduce_object_3d_draw(input, tmp[0], tmp[1], 0, scale * 0.0125, SUI_3D_OBJECT_SELECT, 1, color);
+					seduce_object_3d_draw(input, tmp[0], tmp[1], 0, scale * 0.0125, SEDUCE_OBJECT_HANDLE_MOVE_3D, 1, color);
 				else
-					seduce_object_3d_draw(input, tmp[0], tmp[1], 0, scale * 0.0125, SUI_3D_OBJECT_SELECT, 1, NULL);
+					seduce_object_3d_draw(input, tmp[0], tmp[1], 0, scale * 0.0125, SEDUCE_OBJECT_HANDLE_MOVE_3D, 1, NULL);
 				r_matrix_set(m);
 				seduce_element_add_point(input, id, 0, pos, scale * 0.0125 * tmp[2]);
 				r_matrix_set(reset);
@@ -879,9 +886,9 @@ STypeInState seduce_manipulator_point_axis(BInputState *input, RMatrix *m, float
 				reset = r_matrix_get();
 				seduce_widget_overlay_matrix(&draw_matrix);
 				if(active)
-					seduce_object_3d_draw(input, tmp[0], tmp[1], 0, scale * 0.0125, SUI_3D_OBJECT_MOVE_3D, 1, color);
+					seduce_object_3d_draw(input, tmp[0], tmp[1], 0, scale * 0.0125, SEDUCE_OBJECT_HANDLE_MOVE_3D, 1, color);
 				else
-					seduce_object_3d_draw(input, tmp[0], tmp[1], 0, scale * 0.0125, SUI_3D_OBJECT_MOVE_3D, 1, NULL);
+					seduce_object_3d_draw(input, tmp[0], tmp[1], 0, scale * 0.0125, SEDUCE_OBJECT_HANDLE_MOVE_3D, 1, NULL);
 				r_matrix_set(m);
 				seduce_element_add_point(input, id, 0, pos, scale * 0.025 * tmp[2]);
 				r_matrix_set(reset);
@@ -1053,9 +1060,9 @@ STypeInState seduce_manipulator_point_vector_internal(BInputState *input, RMatri
 				}
 			}
 			if(active)
-				seduce_object_3d_draw(input, tmp[0], tmp[1], 0, scale * 0.0125, SUI_3D_OBJECT_MOVE_3D, 1, color);
+				seduce_object_3d_draw(input, tmp[0], tmp[1], 0, scale * 0.0125, SEDUCE_OBJECT_HANDLE_MOVE_3D, 1, color);
 			else
-				seduce_object_3d_draw(input, tmp[0], tmp[1], 0, scale * 0.0125, SUI_3D_OBJECT_MOVE_3D, 1, NULL);
+				seduce_object_3d_draw(input, tmp[0], tmp[1], 0, scale * 0.0125, SEDUCE_OBJECT_HANDLE_MOVE_3D, 1, NULL);
 			r_matrix_set(m);
 			seduce_element_add_point(input, id, part, pos, scale * 0.025 * tmp[2]);
 			r_matrix_set(reset);
@@ -1258,18 +1265,18 @@ STypeInState seduce_manipulator_normal(BInputState *input, RMatrix *m, float *po
 			r_matrix_normalize_scale(m);
 			r_matrix_scale(m, scale, scale, scale);
 			time = 1.0 - time;
-			seduce_manipulator_normal_draw(input, m, id, 1,  0, 0, SUI_3D_OBJECT_NORMALLOCK, time, normal[0] > 0.9999 && active, 0, 0.45, 0.5, scale);
-			seduce_manipulator_normal_draw(input, m, id, -1, 0, 0, SUI_3D_OBJECT_NORMALLOCK, time, normal[0] < -0.9999 && active, 1, 0.45, 0.5, scale);
-			seduce_manipulator_normal_draw(input, m, id, 0, 1 , 0, SUI_3D_OBJECT_NORMALLOCK, time, normal[1] > 0.9999 && active, 2, 0.45, 0.5, scale);
-			seduce_manipulator_normal_draw(input, m, id, 0, -1, 0, SUI_3D_OBJECT_NORMALLOCK, time, normal[1] < -0.9999 && active, 3, 0.45, 0.5, scale);
-			seduce_manipulator_normal_draw(input, m, id, 0, 0, 1,  SUI_3D_OBJECT_NORMALLOCK, time, normal[2] > 0.9999 && active, 4, 0.45, 0.5, scale);
-			seduce_manipulator_normal_draw(input, m, id, 0, 0, -1, SUI_3D_OBJECT_NORMALLOCK, time, normal[2] < -0.9999 && active, 5, 0.45, 0.5, scale);
+			seduce_manipulator_normal_draw(input, m, id, 1,  0, 0, SEDUCE_OBJECT_HANDLE_NORMALLOCK, time, normal[0] > 0.9999 && active, 0, 0.45, 0.5, scale);
+			seduce_manipulator_normal_draw(input, m, id, -1, 0, 0, SEDUCE_OBJECT_HANDLE_NORMALLOCK, time, normal[0] < -0.9999 && active, 1, 0.45, 0.5, scale);
+			seduce_manipulator_normal_draw(input, m, id, 0, 1 , 0, SEDUCE_OBJECT_HANDLE_NORMALLOCK, time, normal[1] > 0.9999 && active, 2, 0.45, 0.5, scale);
+			seduce_manipulator_normal_draw(input, m, id, 0, -1, 0, SEDUCE_OBJECT_HANDLE_NORMALLOCK, time, normal[1] < -0.9999 && active, 3, 0.45, 0.5, scale);
+			seduce_manipulator_normal_draw(input, m, id, 0, 0, 1,  SEDUCE_OBJECT_HANDLE_NORMALLOCK, time, normal[2] > 0.9999 && active, 4, 0.45, 0.5, scale);
+			seduce_manipulator_normal_draw(input, m, id, 0, 0, -1, SEDUCE_OBJECT_HANDLE_NORMALLOCK, time, normal[2] < -0.9999 && active, 5, 0.45, 0.5, scale);
 			time = 1.0 - time;
 			r_matrix_scale(m, time, time, time);
 			if(active)
-				seduce_manipulator_normal_draw(input, m, NULL, normal[0], normal[1], normal[2], SUI_3D_OBJECT_NORMAL, 0, TRUE,  6, 0.0, 0.45, scale);
+				seduce_manipulator_normal_draw(input, m, NULL, normal[0], normal[1], normal[2], SEDUCE_OBJECT_HANDLE_NORMAL, 0, TRUE,  6, 0.0, 0.45, scale);
 			else
-				seduce_manipulator_normal_draw(input, m, id, normal[0], normal[1], normal[2], SUI_3D_OBJECT_NORMAL, 0, FALSE,6, 0.0, 0.45, scale);
+				seduce_manipulator_normal_draw(input, m, id, normal[0], normal[1], normal[2], SEDUCE_OBJECT_HANDLE_NORMAL, 0, FALSE,6, 0.0, 0.45, scale);
 			r_matrix_pop(m);
 			r_matrix_set(reset);
 		}

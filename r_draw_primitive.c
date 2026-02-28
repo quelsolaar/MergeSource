@@ -84,16 +84,16 @@ char *r_shader_surface_vertex =
 "}";
 
 char *r_shader_surface_fragment = 
-"uniform sampler2D reflection;"
-"varying vec4 col;"
-"varying vec3 normal;"
-"varying vec4 v;"
-"void main()"
-"{"
-"	vec3 ref;"
-"	ref = normalize(reflect(normalize(v.xyz), normal.xyz)) * vec3(0.5) + vec3(0.5);"
-"	gl_FragColor = col + vec4(texture2D(reflection, ref.xy).xyz * (vec3(1.0) + (normal.zzz)), 0.0);"
-"}";
+"uniform sampler2D reflection;\n"
+"varying vec4 col;\n"
+"varying vec3 normal;\n"
+"varying vec4 v;\n"
+"void main()\n"
+"{\n"
+"	vec3 ref;\n"
+"	ref = normalize(reflect(normalize(v.xyz), normal.xyz)) * vec3(0.5) + vec3(0.5);\n"
+"	gl_FragColor = col + vec4(texture2D(reflection, ref.xy).xyz * (vec3(1.0) + (normal.zzz)), 0.0);\n"
+"}\n";
 
 char *r_shader_image_vertex = 
 "attribute vec4 vertex;"
@@ -118,7 +118,7 @@ char *r_shader_image_fragment =
 "{"
 "	vec4 tex;"
 "	tex = texture2D(image, mapping).rgba;"
-"	gl_FragColor = tex * col;"
+"	gl_FragColor = vec4(tex.rgb * col.rgb, 1.0);"
 "}";
 
 
@@ -154,7 +154,7 @@ char *r_shader_sprite_fragment =
 
 #define SUI_DRAW_SURFACE_BUFFER (128 * 6)
 #define SUI_DRAW_IMAGE_BUFFER (6)
-#define SUI_DRAW_LINE_BUFFER (1024)
+#define SUI_DRAW_LINE_BUFFER (1024 * 16)
 #define SUI_DRAW_SPRITE_BUFFER (1024)
 
 extern uint sui_3d_texture_shade;
@@ -164,6 +164,7 @@ void *r_surface_pool = NULL;
 void *r_surface_section = NULL;
 uint r_surface_count = 0;
 
+float *r_line_buffer = NULL;
 void *r_line_pool = NULL;
 uint r_line_count = 0;
 
@@ -214,16 +215,18 @@ void r_primitive_init()
 	float array[8 * 30], surface[3 * 6] = {0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0};
 	char buffer[2048];
 	if(r_line_pool != NULL)
-		free(r_line_pool);
+		r_array_free(r_line_pool);
+	if(r_line_buffer == NULL)
+		r_line_buffer = malloc((sizeof *r_line_buffer) * 7 * SUI_DRAW_LINE_BUFFER);
 	r_line_pool = r_array_allocate(SUI_DRAW_LINE_BUFFER, vertex_format_types, vertex_format_size, 2, 0);
 	if(r_surface_pool != NULL)
-		free(r_surface_pool);
+		r_array_free(r_surface_pool);
 	r_surface_pool = r_array_allocate(6, vertex_format_types, vertex_format_size, 1, 0);
 	if(r_image_pool != NULL)
-		free(r_image_pool);
+		r_array_free(r_image_pool);
 	r_image_pool = r_array_allocate(SUI_DRAW_IMAGE_BUFFER, vertex_format_types, vertex_format_size_surface, 1, 0);
 	if(r_sprite_pool != NULL)
-		free(r_sprite_pool);
+		r_array_free(r_sprite_pool);
 	r_sprite_pool = r_array_allocate(SUI_DRAW_SPRITE_BUFFER, vertex_format_types, vertex_format_size, 3, 0);
 
 	r_primitive_image_aa_set(&array[8 * 0], 0, 0, 1, 0, 0);
@@ -275,7 +278,7 @@ void r_primitive_init()
 	if(r_vertex_color_shader != NULL)
 		free(r_vertex_color_shader);
 	r_vertex_color_shader = r_shader_create_simple(NULL, 0, r_shader_vertex_color_vertex, r_shader_vertex_color_fragment, "vertex color primitive");
-	r_shader_state_set_blend_mode(r_vertex_color_shader, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);	
+	r_shader_state_set_blend_mode(r_vertex_color_shader, R_BM_ONE, R_BM_ONE_MINUS_SRC_ALPHA);	
 	if(r_surface_shader != NULL)
 		free(r_surface_shader);	
 	r_surface_shader = r_shader_create_simple(buffer, 2048, r_shader_surface_vertex, r_shader_surface_fragment, "color primitive");
@@ -286,9 +289,9 @@ void r_primitive_init()
 	if(r_image_shader != NULL)
 		free(r_image_shader);	
 	r_image_shader = r_shader_create_simple(NULL, 0, r_shader_image_vertex, r_shader_image_fragment, "image primitive");
-	r_shader_state_set_blend_mode(r_image_shader, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-//	r_shader_state_set_blend_mode(r_image_shader, GL_ONE, GL_ONE);
-	r_shader_state_set_depth_test(r_image_shader, GL_ALWAYS);
+	r_shader_state_set_blend_mode(r_image_shader, R_BM_ONE, R_BM_ONE_MINUS_SRC_ALPHA);
+//	r_shader_state_set_blend_mode(r_image_shader, R_BM_ONE, R_BM_ONE);
+	r_shader_state_set_depth_test(r_image_shader, R_DT_ALWAYS);
 	r_image_location_uv = r_shader_uniform_location(r_image_shader, "uv");
 	r_image_location_color = r_shader_uniform_location(r_image_shader, "color");
 	r_image_location_pos = r_shader_uniform_location(r_image_shader, "pos");
@@ -372,9 +375,13 @@ void r_primitive_surface2(float pos_x, float pos_y, float pos_z, float size_x, f
 
 void r_primitive_line_flush()
 {
-	r_shader_set(r_vertex_color_shader);
-	r_array_section_draw(r_line_pool, NULL, GL_LINES, 0, r_line_count);
-	r_line_count = 0;	
+	if(r_line_count != 0)
+	{
+		r_shader_set(r_vertex_color_shader);	
+		r_array_load_vertex(r_line_pool, NULL, r_line_buffer, 0, r_line_count);
+		r_array_section_draw(r_line_pool, NULL, GL_LINES, 0, r_line_count);
+		r_line_count = 0;	
+	}
 }
 
 void r_primitive_line_clear()
@@ -385,7 +392,8 @@ void r_primitive_line_clear()
 
 void r_primitive_line_3d(float start_x, float start_y, float start_z, float end_x, float end_y, float end_z, float red, float green, float blue, float alpha)
 {
-	float array[14];
+	float *array;
+	array = &r_line_buffer[r_line_count * 7];
 	array[0] = start_x;
 	array[1] = start_y;
 	array[2] = start_z;
@@ -396,7 +404,6 @@ void r_primitive_line_3d(float start_x, float start_y, float start_z, float end_
 	array[7] = end_x;
 	array[8] = end_y;
 	array[9] = end_z;
-	r_array_load_vertex(r_line_pool, NULL, array, r_line_count, 2);
 	r_line_count += 2;
 	if(r_line_count == SUI_DRAW_LINE_BUFFER)
 		r_primitive_line_flush();
@@ -404,7 +411,9 @@ void r_primitive_line_3d(float start_x, float start_y, float start_z, float end_
 
 void r_primitive_line_2d(float start_x, float start_y, float end_x, float end_y, float red, float green, float blue, float alpha)
 {
-	float array[14];
+	float *array;
+//	return;
+	array = &r_line_buffer[r_line_count * 7];
 	array[0] = start_x;
 	array[1] = start_y;
 	array[2] = 0;
@@ -415,7 +424,6 @@ void r_primitive_line_2d(float start_x, float start_y, float end_x, float end_y,
 	array[7] = end_x;
 	array[8] = end_y;
 	array[9] = 0;
-	r_array_load_vertex(r_line_pool, NULL, array, r_line_count, 2);
 	r_line_count += 2;
 	if(r_line_count == SUI_DRAW_LINE_BUFFER)
 		r_primitive_line_flush();
@@ -424,7 +432,8 @@ void r_primitive_line_2d(float start_x, float start_y, float end_x, float end_y,
 
 void r_primitive_line_fade_3d(float start_x, float start_y, float start_z, float end_x, float end_y, float end_z, float start_red, float start_green, float start_blue, float start_alpha, float end_red, float end_green, float end_blue, float end_alpha)
 {
-	float array[14];
+	float *array;
+	array = &r_line_buffer[r_line_count * 7];
 	array[0] = start_x;
 	array[1] = start_y;
 	array[2] = start_z;
@@ -439,7 +448,6 @@ void r_primitive_line_fade_3d(float start_x, float start_y, float start_z, float
 	array[11] = end_green;
 	array[12] = end_blue;
 	array[13] = end_alpha;
-	r_array_load_vertex(r_line_pool, NULL, array, r_line_count, 2);
 	r_line_count += 2;
 	if(r_line_count == SUI_DRAW_LINE_BUFFER)
 		r_primitive_line_flush();
@@ -447,7 +455,8 @@ void r_primitive_line_fade_3d(float start_x, float start_y, float start_z, float
 
 void r_primitive_line_fade_2d(float start_x, float start_y, float end_x, float end_y, float start_red, float start_green, float start_blue, float start_alpha, float end_red, float end_green, float end_blue, float end_alpha)
 {
-	float array[14];
+	float *array;
+	array = &r_line_buffer[r_line_count * 7];
 	array[0] = start_x;
 	array[1] = start_y;
 	array[2] = 0;
@@ -462,19 +471,16 @@ void r_primitive_line_fade_2d(float start_x, float start_y, float end_x, float e
 	array[11] = end_green;
 	array[12] = end_blue;
 	array[13] = end_alpha;
-	r_array_load_vertex(r_line_pool, NULL, array, r_line_count, 2);
 	r_line_count += 2;
 	if(r_line_count == SUI_DRAW_LINE_BUFFER)
 		r_primitive_line_flush();
 }
 
 void r_primitive_sprite_flush()
-//FK: There's no GL_QUADS on OpenGL ES
-#ifndef BETRAY_CONTEXT_OPENGLES
+{
 	r_shader_set(r_sprite_shader);
 	r_array_section_draw(r_sprite_pool, r_sprite_section, GL_QUADS, 0, r_sprite_count);
 	r_sprite_count = 0;
-#endif
 }
 
 void r_primitive_sprite(float pos_x, float pos_y, float pos_z, uint texture_id, float size_x, float size_y, float red, float green, float blue, float alpha)

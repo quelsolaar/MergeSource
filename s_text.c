@@ -41,7 +41,7 @@ void seduce_text_init()
 {
 	char buf[2000];
 	sui_font_shader = r_shader_create_simple(buf, 2000, r_font_shader_vertex, r_font_shader_fragment, "color font");
-	r_shader_state_set_blend_mode(sui_font_shader, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+	r_shader_state_set_blend_mode(sui_font_shader, R_BM_ONE, R_BM_ONE_MINUS_SRC_ALPHA);
 	printf(buf);
 	sui_font_shader_location_shader = r_shader_uniform_location(sui_font_shader, "color");
 }
@@ -489,15 +489,20 @@ uint seduce_text_block_hit_test(SeduceRenderFont *font, float *size, uint *gaps,
 
 uint seduce_text_block_draw(float pos_x, float pos_y, float line_size, float height, float line_spacing, STextBlockAlignmentStyle style, const char *text, uint pos, STextBlockMode *modes, uint mode_count)
 {
+	SeduceRenderFont *font;
 	uint i, j, next, gaps, start_block = 0, block, line_end, accum;
 	float f, size, space_size, x, y, highest;
 	y = 0;
 	height = -height;
 	for(start_block = 0; start_block + 1 < mode_count && pos > modes[start_block + 1].character_position; start_block++);
+
+	font = modes[start_block].font;
+	if(font == NULL)
+		font = seduce_font_default_get();
 	for(i = 0; text[pos] != 0; i++)
 	{
 		accum = pos;
-		if(NULL == seduce_character_find(modes[start_block].font, f_utf8_to_uint32(text, &accum)))
+		if(NULL == seduce_character_find(font, f_utf8_to_uint32(text, &accum)))
 			pos = accum;
 		else 
 			accum = pos;
@@ -519,7 +524,7 @@ uint seduce_text_block_draw(float pos_x, float pos_y, float line_size, float hei
 				highest = modes[block + 1].letter_size;
 		}
 		j = accum;
-		if(NULL == seduce_character_find(modes[start_block].font, f_utf8_to_uint32(text, &j)))
+		if(NULL == seduce_character_find(font, f_utf8_to_uint32(text, &j)))
 			gaps--;
 		y -= line_spacing * highest;
 		if(y < height)
@@ -546,13 +551,16 @@ uint seduce_text_block_draw(float pos_x, float pos_y, float line_size, float hei
 
 		for(start_block; start_block <= block; start_block++)
 		{
+			font = modes[start_block].font;
+			if(font == NULL)
+				font = seduce_font_default_get();
 			if(start_block + 1 < mode_count)
 				line_end = modes[start_block + 1].character_position - pos;
 			else
 				line_end = -1;
 			if(line_end > accum - pos)
 				line_end = accum - pos;	
-			x += seduce_text_line_draw_internal(modes[start_block].font, pos_x + x, pos_y + y, modes[start_block].letter_size, modes[start_block].letter_spacing, space_size, &text[pos], modes[start_block].red, modes[start_block].green, modes[start_block].blue, modes[start_block].alpha, line_end);
+			x += seduce_text_line_draw_internal(font, pos_x + x, pos_y + y, modes[start_block].letter_size, modes[start_block].letter_spacing, space_size, &text[pos], modes[start_block].red, modes[start_block].green, modes[start_block].blue, modes[start_block].alpha, line_end);
 			pos += line_end;
 			if(pos >= accum)
 				break;
@@ -698,14 +706,19 @@ void seduce_text_block_select_draw(BInputState *input, float pos_x, float pos_y,
 
 boolean seduce_text_block_length(float *output, float pos_x, float pos_y, float line_size, float height, float line_spacing, STextBlockAlignmentStyle style, const char *text, uint pos, STextBlockMode *modes, uint mode_count, uint end)
 {
+	SeduceRenderFont *font;
 	uint i, j, next, gaps, start_block = 0, block, line_end, accum;
 	float f, size, space_size, x = 0, y = 0, highest;
 	height = -height;
 	for(start_block = 0; start_block + 1 < mode_count && pos > modes[start_block + 1].character_position; start_block++);
+
 	for(i = 0; text[pos] != 0; i++)
 	{
+		font = modes[start_block].font;
+		if(font == NULL)
+			font = seduce_font_default_get();
 		accum = pos;
-		if(NULL == seduce_character_find(modes[start_block].font, f_utf8_to_uint32(text, &accum)))
+		if(NULL == seduce_character_find(font, f_utf8_to_uint32(text, &accum)))
 			pos = accum;
 		else 
 			accum = pos;
@@ -718,7 +731,9 @@ boolean seduce_text_block_length(float *output, float pos_x, float pos_y, float 
 				line_end = modes[block + 1].character_position - accum;
 			else
 				line_end = -1;
-			next = seduce_text_block_hit_test(modes[block].font, &size, &gaps, modes[block].letter_size, modes[block].letter_spacing, &text[accum], x, line_end);
+			next = seduce_text_block_hit_test(font, &size, &gaps, modes[block].letter_size, modes[block].letter_spacing, &text[accum], x, line_end);
+			if(next == 0)
+				next = 1;
 			x -= size * modes[block].letter_size;
 			accum += next;
 			if(next != line_end)
@@ -727,7 +742,7 @@ boolean seduce_text_block_length(float *output, float pos_x, float pos_y, float 
 				highest = modes[block + 1].letter_size;
 		}
 		j = accum;
-		if(NULL == seduce_character_find(modes[start_block].font, f_utf8_to_uint32(text, &j)))
+		if(NULL == seduce_character_find(font, f_utf8_to_uint32(text, &j)))
 			gaps--;
 
 		y -= line_spacing * highest;
@@ -769,7 +784,10 @@ boolean seduce_text_block_length(float *output, float pos_x, float pos_y, float 
 					line_end = accum - pos;	
 				if(line_end > end - pos)
 					line_end = end - pos;
-				x += seduce_text_line_length_internal(modes[start_block].font, modes[start_block].letter_size, modes[start_block].letter_spacing, space_size, &text[pos], &line_end, line_size + 1);
+				font = modes[start_block].font;
+				if(font == NULL)
+					font = seduce_font_default_get();
+				x += seduce_text_line_length_internal(font, modes[start_block].letter_size, modes[start_block].letter_spacing, space_size, &text[pos], &line_end, line_size + 1);
 				if(line_end == end - pos)
 				{
 					output[0] = pos_x + x;

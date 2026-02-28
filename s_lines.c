@@ -331,17 +331,17 @@ uint seduce_line_bokeh_gen()
 		for(j = 0; j < FLARE_TEXTURE_SIZE * 3; j++)
 			data[i * FLARE_TEXTURE_SIZE * 3 + j] /= f;
 	}
-
-	texture_id = r_texture_allocate(R_IF_RGB_FLOAT32, FLARE_TEXTURE_SIZE, FLARE_TEXTURE_SIZE, 1, TRUE, FALSE, data);
 	for(i = 0; i < FLARE_TEXTURE_SIZE * FLARE_TEXTURE_SIZE * 3; i++)
 		if(data[i] > 1.0 || data[i] < 0.0)
 			data[i] = 1.0;
+	texture_id = r_texture_allocate(R_IF_RGB_FLOAT32, FLARE_TEXTURE_SIZE, FLARE_TEXTURE_SIZE, 1, TRUE, FALSE, data);
+
 
 	free(data);
 	return texture_id;
 }
 
-#define DIRT_TEXTURE_SIZE 512
+#define DIRT_TEXTURE_SIZE 1024
 
 void seduce_line_dirt_line_draw_channel(float *buffer, float x_start, float y_start, float x_end, float y_end, float brightness, float scale)
 {
@@ -497,6 +497,9 @@ uint seduce_line_dirt_gen()
 			y = y2;
 		}
 	}
+	for(i = 0; i < DIRT_TEXTURE_SIZE * DIRT_TEXTURE_SIZE * 3; i++)
+		if(data[i] != data[i])
+			i += 0;
 	texture_id = r_texture_allocate(R_IF_RGB_FLOAT32, DIRT_TEXTURE_SIZE, DIRT_TEXTURE_SIZE, 1, TRUE, FALSE, data);
 	free(data);
 	return texture_id;
@@ -577,8 +580,8 @@ void seduce_draw_line_init()
 	seduce_line_draw.circle_shader_location_add = r_shader_uniform_location(seduce_line_draw.circle_shader, "add");
 	seduce_line_draw.circle_shader_location_multiply = r_shader_uniform_location(seduce_line_draw.circle_shader, "multiply");
 	seduce_line_draw.circle_shader_location_time = r_shader_uniform_location(seduce_line_draw.circle_shader, "time");
-	r_shader_state_set_blend_mode(seduce_line_draw.circle_shader, GL_ONE, GL_ONE);
-	r_shader_state_set_depth_test(seduce_line_draw.circle_shader, GL_ALWAYS);
+	r_shader_state_set_blend_mode(seduce_line_draw.circle_shader, R_BM_ONE, R_BM_ONE);
+	r_shader_state_set_depth_test(seduce_line_draw.circle_shader, R_DT_ALWAYS);
 	
 
 	array = malloc((sizeof *array) * 4 * SEDUCE_LINE_CIRCLE_SECTIONS_MAX);
@@ -699,7 +702,7 @@ void seduce_draw_spline(float x_a, float y_a, float z_a,
 	r_matrix_pop(NULL);
 }
 
-char *stellar_line_expand_vertex = 
+char *seduce_line_expand_vertex = 
 "uniform mat4 ModelViewMatrix;\n"
 "attribute vec4 vertex;\n"
 "attribute vec4 color;\n"
@@ -716,7 +719,7 @@ char *stellar_line_expand_vertex =
 "	col = color * base_color;\n"
 "}\n";
 
-char *stellar_line_expand_geometry = 
+char *seduce_line_expand_geometry = 
 "layout(lines) in;\n"
 "layout(triangle_strip, max_vertices = 8) out;\n"
 "uniform mat4 ProjectionMatrix;\n"
@@ -805,7 +808,7 @@ char *stellar_line_expand_geometry =
 "}\n";
 
 
-char *stellar_line_expand_geometry_test = 
+char *seduce_line_expand_geometry_test = 
 "layout(lines) in;\n"
 "layout(triangle_strip, max_vertices = 8) out;\n"
 "uniform mat4 ProjectionMatrix;\n"
@@ -893,7 +896,7 @@ char *stellar_line_expand_geometry_test =
 "		EndPrimitive();\n"
 "}\n";
 
-char *stellar_line_expand_fragment_test = 
+char *seduce_line_expand_fragment_test = 
 "uniform sampler2D image;\n"
 "uniform float time;"
 "uniform mat3 color_space;"
@@ -907,7 +910,7 @@ char *stellar_line_expand_fragment_test =
 "	gl_FragColor = vec4(1.0, 0, 0, 1);\n"
 "}\n";
 
-char *stellar_line_expand_fragment = 
+char *seduce_line_expand_fragment = 
 "uniform sampler2D image;\n"
 "uniform float time;"
 "uniform mat3 color_space;"
@@ -932,7 +935,7 @@ char *stellar_line_expand_fragment =
 "	gl_FragColor = vec4(min(min(uv.b, uv.a), 1.0)) * vec4(dist * dist * f * f) * max(tex.aaaa * pixel, vec4(tex.rgb * color_space, pixel.a));\n"
 "}\n";
 
-char *stellar_circle_expand_vertex = 
+char *seduce_circle_expand_vertex = 
 "uniform mat4 ModelViewMatrix;\n"
 "attribute vec4 center;\n" // alpha is radius
 "attribute vec4 vector;\n" // alpha is start
@@ -975,7 +978,7 @@ char *stellar_circle_expand_vertex =
 "	u_add = mapping.y / divides;\n"
 "}\n";
 
-char *stellar_circle_expand_geometry = 
+char *seduce_circle_expand_geometry = 
 "layout(points) in;\n"
 "layout(triangle_strip, max_vertices = %u) out;\n"
 "uniform mat4 ProjectionMatrix;\n"
@@ -1046,7 +1049,7 @@ char *stellar_circle_expand_geometry =
 "}\n";
 
 
-char *stellar_circle_expand_fragment = 
+char *seduce_circle_expand_fragment = 
 "uniform sampler2D image;\n"
 "uniform mat3 color_space;"
 "varying vec4 pixel;\n"
@@ -1072,7 +1075,7 @@ char *stellar_circle_expand_fragment =
 "}\n";
 
 
-char *stellar_spline_expand_vertex = 
+char *seduce_spline_expand_vertex = 
 "uniform mat4 ModelViewMatrix;\n"
 "attribute vec4 pos_a;\n" // alpha is pos_d x
 "attribute vec4 pos_b;\n" // alpha is pos_d y
@@ -1108,7 +1111,7 @@ char *stellar_spline_expand_vertex =
 "	u_add = mapping.y / %f;\n"
 "}\n";
 
-char *stellar_spline_expand_geometry = 
+char *seduce_spline_expand_geometry = 
 "layout(points) in;\n"
 "layout(triangle_strip, max_vertices = %u) out;\n"
 "uniform mat4 ProjectionMatrix;\n"
@@ -1172,13 +1175,13 @@ char *stellar_spline_expand_geometry =
 "		last_expand = expand;\n"
 "		depth_a = depth_b;\n"
 "		prev = pos_a;\n"
-"		pos_a = pos_b;\n"
+"		pos_a.xyz = pos_b.xyz;\n"
 "		pos_b = next;\n"
 "	}\n"
 "	EndPrimitive();\n"
 "}\n";
 
-char *stellar_bokhe_vertex = 
+char *seduce_bokhe_vertex = 
 "attribute vec3 vertex;\n"
 "attribute vec4 color;\n"
 "uniform mat4 ModelViewProjectionMatrix;\n"
@@ -1199,18 +1202,16 @@ char *stellar_bokhe_vertex =
 "	float f, focus, bright, expand;\n"
 "	v = ModelViewProjectionMatrix * vec4(vertex, 1.0);\n"
 "	focus =	(v.z - distance) / distance;\n"
-//"   focus *= focus;\n"
-//"	anim = min(vec2(sqrt(focus), focus) * vec2(2.0, 1.5), vec2(0.99));\n"
 "   if(focus > 0.0)\n"
-"		focus =	1.0 - (1.0 / (1.0 + focus * focus));\n"
+"		focus =	1.0 - (1.0 / (1.0 + focus * 0.1));\n"
 "	else\n"
 "	    focus = focus * focus * (3.0 + 2.0 * focus);\n"
 "	anim.xy = vec2(focus);\n"
-//"   focus = abs(focus) + 0.015 * v.z;\n"
-"	bright = max(max(color.r, color.g), color.b);"
-"   if(bright > 0.00001)\n"
+"	c = color;\n"
+"	bright = max(max(c.r, c.g), c.b);"
+"	gl_Position = v;\n"
+"   if(bright > 0.00000001)\n"
 "	{\n"
-"		c = vec4(color.rgb, 1.0);\n"
 "		if(color.a > 128.0)\n"
 "			map.x = 1.0;\n"
 "		else\n"
@@ -1221,16 +1222,32 @@ char *stellar_bokhe_vertex =
 "			map.y = -1.0;\n"
 "		dust = focus * 2.0;\n"
 "		f = 1.0 - anim.y;\n"
-"		expand = mix(2.0, 4.0 * bright, f * f);\n"
-"		c = mix(color, color / vec4(bright), f * f);\n"
-"		gl_Position = v + vec4(map * vec2(v.z * 0.1 * expand) * size, 0.0, 0.0);\n"
-"		map_offset = vec2(0.8 * map) + v.xy / v.zz  * vec2(offset * focus);\n"
-"		map_dirt = vec2(0.5 * map + vec2(0.5))/* + v.xy * vec2(offset * -0.2)*/;\n"
-"	}else\n"
-"		gl_Position = v;\n"
+"		expand = mix(1.0, 4.0 * bright / v.z, f * f);\n"
+"		c = mix(c, 4.0 * c / bright / v.z, f * f);\n"
+"		if(expand > 1.0)\n"
+"		{\n"
+"			f = expand * expand;\n"
+"			c *= vec4(f);\n"
+"			bright *= f;\n"
+"			expand = 1.0;\n"
+"		}else\n"
+"		if(expand < 0.01)\n"
+"		{\n"
+"			f = expand * expand;\n"
+"			c *= vec4(f * 10000.0);\n"
+"			bright *= f * 10000.0;\n"
+"			expand = 0.01;"
+"		}\n"
+"		if(bright > 0.001)\n"
+"		{\n"
+"			gl_Position = v + vec4(map * vec2(v.z * expand) * size, 0.0, 0.0);\n"
+"			map_offset = vec2(0.8 * map) + v.xy / v.zz  * vec2(offset * focus);\n"
+"			map_dirt = vec2(0.5 * map + vec2(0.5))/* + v.xy * vec2(offset * -0.2)*/;\n"
+"		}\n"
+"	}\n"
 "}\n";
 
-/*char *stellar_bokhe_fragment = 
+/*char *seduce_bokhe_fragment = 
 "uniform sampler2D image;\n"
 "uniform sampler2D dirt;\n"
 "uniform float distance;\n"
@@ -1246,7 +1263,7 @@ char *stellar_bokhe_vertex =
 "	gl_FragColor = vec4(distance);\n"
 "}\n";*/
 
-char *stellar_bokhe_fragment = 
+char *seduce_bokhe_fragment = 
 "uniform sampler2D image;\n"
 "uniform sampler2D dirt;\n"
 "varying vec2 anim;\n"
@@ -1261,7 +1278,8 @@ char *stellar_bokhe_fragment =
 "	float dist1, dist2;\n"
 "	dist1 = length(map) + 1.0 / 128;\n"
 "	dist2 = length(map_offset) + 1.0 / 128;\n"
-"	gl_FragColor = texture2D(image, vec2(dist1, anim.y)) * mix(vec4(1.0), texture2D(dirt, map_dirt), dust) * c + vec4(0.0, 0.0, 0.0, 0.0);\n"
+"	gl_FragColor = texture2D(image, vec2(dist1, anim.y)) * c;\n"
+//"	gl_FragColor = texture2D(image, vec2(dist1, anim.y)) * mix(vec4(1.0), texture2D(dirt, map_dirt), dust) * c;\n"
 "}\n";
 
 extern uint seduce_line_image_gen(uint resolution);
@@ -1270,7 +1288,7 @@ extern uint seduce_line_image_gen(uint resolution);
 #define GL_FRAGMENT_SHADER_ARB				0x8B30
 #define GL_GEOMETRY_SHADER_ARB				0x8DD9
 
-void stellar_light_draw_lines(void *pool)
+void seduce_light_draw_lines(void *pool)
 {
 	static RShader *pixel_shader = NULL;
 	uint i, count;
@@ -1361,22 +1379,22 @@ void stellar_light_draw_lines(void *pool)
 
 	if(pixel_shader == NULL)
 /*	{
-		pixel_shader = r_shader_create_simple(NULL, 0, stellar_pixel_vertex, stellar_pixel_fragment, "pixel");
-		r_shader_texture_set(pixel_shader, 0, stellar_gen_bokeh_image());
-		r_shader_state_set_blend_mode(pixel_shader, 1, 1);
+		pixel_shader = r_shader_create_simple(NULL, 0, seduce_pixel_vertex, seduce_pixel_fragment, "pixel");
+		r_shader_texture_set(pixel_shader, 0, seduce_gen_bokeh_image());
+		r_shader_state_set_blend_mode(pixel_shader, R_BM_ONE, R_BM_ONE);
 	}*/
 	{
 		char *source[3];
 		uint stages[3];
-		source[0] = stellar_line_expand_vertex;
-		source[1] = stellar_line_expand_geometry; 
-		source[2] = stellar_line_expand_fragment;
+		source[0] = seduce_line_expand_vertex;
+		source[1] = seduce_line_expand_geometry; 
+		source[2] = seduce_line_expand_fragment;
 		stages[0] = GL_VERTEX_SHADER_ARB;
 		stages[1] = GL_GEOMETRY_SHADER_ARB;
 		stages[2] = GL_FRAGMENT_SHADER_ARB;
 		pixel_shader = r_shader_create(NULL, 0, source, stages, 3, "Expand shader", NULL);
 		r_shader_texture_set(pixel_shader, 0, texture_id);
-		r_shader_state_set_depth_test(pixel_shader, GL_ALWAYS);
+		r_shader_state_set_depth_test(pixel_shader, R_DT_ALWAYS);
 	}
 
 /*	shader = r_shader_presets_get(P_SP_COLOR_UNIFORM);
@@ -1400,7 +1418,7 @@ void stellar_light_draw_lines(void *pool)
 		r_shader_float_set(pixel_shader, r_shader_uniform_location(pixel_shader, "test"), input->pointers[0].pointer_x + 1.0);
 
 	}*/
-	r_shader_state_set_blend_mode(pixel_shader, 1, 1);
+	r_shader_state_set_blend_mode(pixel_shader, R_BM_ONE, R_BM_ONE);
 	r_shader_state_set_mask(pixel_shader, TRUE, TRUE, TRUE, TRUE, FALSE); 
 //	r_array_draw(pool, NULL, R_PRIMITIVE_TRIANGLES, 0, -1, NULL, NULL, 1);
 //	r_array_draw(pool, NULL, GL_TRIANGLE_STRIP, 0, -1, NULL, NULL, 1);
@@ -1596,9 +1614,9 @@ void seduce_primitive_line_init()
 	segments /= 2;
 	seduce_line_texture_id = seduce_line_image_gen(1024);
 
-	source[0] = stellar_line_expand_vertex;
-	source[1] = stellar_line_expand_geometry;
-	source[2] = stellar_line_expand_fragment;
+	source[0] = seduce_line_expand_vertex;
+	source[1] = seduce_line_expand_geometry;
+	source[2] = seduce_line_expand_fragment;
 	stages[0] = GL_VERTEX_SHADER_ARB;
 	stages[1] = GL_GEOMETRY_SHADER_ARB;
 	stages[2] = GL_FRAGMENT_SHADER_ARB;
@@ -1607,14 +1625,14 @@ void seduce_primitive_line_init()
 
 	r_shader_texture_set(seduce_global_line_shader, 0, seduce_line_texture_id);
 	r_shader_state_set_mask(seduce_global_line_shader, TRUE, TRUE, TRUE, TRUE, FALSE); 
-	r_shader_state_set_blend_mode(seduce_global_line_shader, 1, GL_ONE_MINUS_SRC_ALPHA);
-	r_shader_state_set_depth_test(seduce_global_line_shader, GL_ALWAYS);
+	r_shader_state_set_blend_mode(seduce_global_line_shader, R_BM_ONE, R_BM_ONE_MINUS_SRC_ALPHA); // , 
+	r_shader_state_set_depth_test(seduce_global_line_shader, R_DT_ALWAYS);
 
 	source[0] = malloc(4096);
 	source[1] = malloc(4096);
-	sprintf(source[0], stellar_circle_expand_vertex, (float)segments - 1.0);
-	sprintf(source[1], stellar_circle_expand_geometry, segments * 2, segments);
-	source[2] = stellar_circle_expand_fragment;
+	sprintf(source[0], seduce_circle_expand_vertex, (float)segments - 1.0);
+	sprintf(source[1], seduce_circle_expand_geometry, segments * 2, segments);
+	source[2] = seduce_circle_expand_fragment;
 	stages[0] = GL_VERTEX_SHADER_ARB;
 	stages[1] = GL_GEOMETRY_SHADER_ARB;
 	stages[2] = GL_FRAGMENT_SHADER_ARB;
@@ -1622,38 +1640,39 @@ void seduce_primitive_line_init()
 	seduce_global_circle_shader = r_shader_create(NULL, 0, source, stages, 3, "Circle shader", NULL);
 	r_shader_texture_set(seduce_global_circle_shader, 0, seduce_line_texture_id);
 	r_shader_state_set_mask(seduce_global_circle_shader, TRUE, TRUE, TRUE, TRUE, FALSE); 
-	r_shader_state_set_blend_mode(seduce_global_circle_shader, 1, GL_ONE_MINUS_SRC_ALPHA);
-	r_shader_state_set_depth_test(seduce_global_circle_shader, GL_ALWAYS);
+	r_shader_state_set_blend_mode(seduce_global_circle_shader, R_BM_ONE, R_BM_ONE_MINUS_SRC_ALPHA);
+	r_shader_state_set_depth_test(seduce_global_circle_shader, R_DT_ALWAYS);
 
-	sprintf(source[0], stellar_spline_expand_vertex, (float)segments - 1.0);
-	sprintf(source[1], stellar_spline_expand_geometry, segments * 2);
-	source[2] = stellar_circle_expand_fragment;
+	sprintf(source[0], seduce_spline_expand_vertex, (float)segments - 1.0);
+	sprintf(source[1], seduce_spline_expand_geometry, segments * 2);
+	source[2] = seduce_circle_expand_fragment;
 	stages[0] = GL_VERTEX_SHADER_ARB;
 	stages[1] = GL_GEOMETRY_SHADER_ARB;
 	stages[2] = GL_FRAGMENT_SHADER_ARB;
 	seduce_global_spline_shader = r_shader_create(NULL, 0, source, stages, 3, "Spline shader", NULL);
 	r_shader_texture_set(seduce_global_spline_shader, 0, seduce_line_texture_id);
 	r_shader_state_set_mask(seduce_global_spline_shader, TRUE, TRUE, TRUE, TRUE, FALSE); 
-	r_shader_state_set_blend_mode(seduce_global_line_shader, 1, GL_ONE_MINUS_SRC_ALPHA);
+	r_shader_state_set_blend_mode(seduce_global_line_shader, R_BM_ONE, R_BM_ONE_MINUS_SRC_ALPHA);
 	seduce_primitive_line_focal_depth_set(1);
-	r_shader_state_set_blend_mode(seduce_global_line_shader, 1, GL_ONE_MINUS_SRC_ALPHA);
+	r_shader_state_set_blend_mode(seduce_global_line_shader, R_BM_ONE, R_BM_ONE_MINUS_SRC_ALPHA);
 	r_shader_state_set_mask(seduce_global_line_shader, TRUE, TRUE, TRUE, TRUE, FALSE); 
-	r_shader_state_set_depth_test(seduce_global_line_shader, GL_ALWAYS);
+	r_shader_state_set_depth_test(seduce_global_line_shader, R_DT_ALWAYS);
 	free(source[0]);
 	free(source[1]);
 
-	source[0] = stellar_bokhe_vertex;
-	source[1] = stellar_bokhe_fragment;
+	source[0] = seduce_bokhe_vertex;
+	source[1] = seduce_bokhe_fragment;
 	stages[0] = GL_VERTEX_SHADER_ARB;
 	stages[1] = GL_FRAGMENT_SHADER_ARB;
 	//	r_shader_debug_override(over_ride_shader, 1);
 	seduce_global_point_shader = r_shader_create(NULL, 0, source, stages, 2, "Boke shader", NULL);
 
 	r_shader_texture_set(seduce_global_point_shader, 0, seduce_line_bokeh_gen());
-	r_shader_texture_set(seduce_global_point_shader, 1, seduce_line_dirt_gen());
+//	r_shader_texture_set(seduce_global_point_shader, 1, seduce_line_dirt_gen());
+//	r_shader_texture_set(seduce_global_point_shader, 1, seduce_line_bokeh_gen());
 	r_shader_state_set_mask(seduce_global_point_shader, TRUE, TRUE, TRUE, TRUE, FALSE); 
-	r_shader_state_set_blend_mode(seduce_global_point_shader, 1, 1);
-	r_shader_state_set_depth_test(seduce_global_point_shader, GL_ALWAYS);
+	r_shader_state_set_blend_mode(seduce_global_point_shader, R_BM_ONE, R_BM_ONE);
+	r_shader_state_set_depth_test(seduce_global_point_shader, R_DT_ALWAYS);
 
 	seduce_global_line_buffer = seduce_primitive_line_object_allocate();
 
@@ -1827,7 +1846,7 @@ void seduce_primitive_line_draw(SeduceLineObject *object, float red, float green
 		r_shader_vec4_set(seduce_global_point_shader, r_shader_uniform_location(seduce_global_point_shader, "base_color"), red, green, blue, alpha);
 		r_shader_float_set(seduce_global_point_shader, r_shader_uniform_location(seduce_global_point_shader, "offset"), 0.9);
 		r_shader_float_set(seduce_global_point_shader, r_shader_uniform_location(seduce_global_point_shader, "distance"), seduce_view_distance_camera_get(NULL));
-		r_shader_vec2_set(seduce_global_point_shader, r_shader_uniform_location(seduce_global_point_shader, "size"), 0.1, 0.1 / 0.6);
+		r_shader_vec2_set(seduce_global_point_shader, r_shader_uniform_location(seduce_global_point_shader, "size"), 0.1, 0.1 * 1.6);
 		r_array_draw(object->point_pool, NULL, GL_TRIANGLES, 0, point_length, NULL, NULL, 1);
 	}
 }
@@ -1859,7 +1878,7 @@ void seduce_primitive_line_add_3d(SeduceLineObject *object,
 			if(object->line_length == 0)
 				object->line_length = 256;
 			object->line_length *= 2;
-			object->line_buffer = realloc(object->line_buffer, (sizeof *object->line_buffer) * 8 * object->line_length);
+			object->line_buffer = realloc(object->line_buffer, (sizeof *object->line_buffer) * 16 * object->line_length);
 			if(object->line_buffer == NULL)
 			{
 				object->line_buffer[0] = 0;
@@ -1868,7 +1887,7 @@ void seduce_primitive_line_add_3d(SeduceLineObject *object,
 		buffer = &object->line_buffer[object->line_used * 8];
 		object->line_used += 2;
 		*buffer = pos_a_x;
-//		f_debug_memory();
+//		f_debug_mem_check_bounds();
 	}
 	*buffer++ = pos_a_x;
 	*buffer++ = pos_a_y;

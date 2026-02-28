@@ -390,12 +390,18 @@ void p_sds_stage_count_poly(PPolyStore *mesh, uint *ref, uint ref_count, pgreal 
 				mesh->base_tri_count++;				
 		}
 	}
-	mesh->ref = malloc((sizeof *mesh->ref) * (3 * mesh->base_tri_count + 4 * mesh->base_quad_count));
-	mesh->crease = malloc((sizeof *mesh->crease) * (3 * mesh->base_tri_count + 4 * mesh->base_quad_count));
-	default_crease = 1.0 - default_crease;
-	for(i = 0; i < (3 * mesh->base_tri_count + 4 * mesh->base_quad_count); i++)
-		mesh->crease[i] = default_crease;
-
+	if(mesh->base_tri_count + mesh->base_quad_count == 0)
+	{
+		mesh->ref = NULL;
+		mesh->crease = NULL;
+	}else
+	{
+		mesh->ref = malloc((sizeof *mesh->ref) * (3 * mesh->base_tri_count + 4 * mesh->base_quad_count));
+		mesh->crease = malloc((sizeof *mesh->crease) * (3 * mesh->base_tri_count + 4 * mesh->base_quad_count));
+		default_crease = 1.0 - default_crease;
+		for(i = 0; i < (3 * mesh->base_tri_count + 4 * mesh->base_quad_count); i++)
+			mesh->crease[i] = default_crease;
+	}
 }
 
 void p_sds_stage_clean_poly(PPolyStore *mesh, uint *ref, uint ref_count, pgreal *vertex, uint vertex_count)

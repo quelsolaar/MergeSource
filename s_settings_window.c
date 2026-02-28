@@ -1,7 +1,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include "seduce.h"
-#include "s_draw_3d.h"
+
 /*
 typedef enum{
 	SEDUCE_PET_BOOLEAN,
@@ -343,7 +343,7 @@ void seduce_widget_list_element_list(BInputState *input, float pos_x, float pos_
 			case SEDUCE_PET_BOOLEAN :
 				if(element[i].param.active)
 				{
-					if(seduce_widget_toggle_icon(input, &element[i], &element[i].param.active, SUI_3D_OBJECT_CHECKBOXCHECKED, pos_x + width - scale * (0.5 + SEDUCE_PANEL_RIM_SIZE), pos_y + scale * 0.5, scale * 2.0, time))
+					if(seduce_widget_toggle_icon(input, &element[i], &element[i].param.active, SEDUCE_OBJECT_SELECTED, pos_x + width - scale * (0.5 + SEDUCE_PANEL_RIM_SIZE), pos_y + scale * 0.5, scale * 2.0, time))
 					{
 						float off[4] = {1.0, 0.2, 0.4, 0.9};
 						j = seduce_background_particle_color_allocate(NULL, off[0], off[1], off[2]);
@@ -351,7 +351,7 @@ void seduce_widget_list_element_list(BInputState *input, float pos_x, float pos_
 					}
 				}else
 				{
-					if(seduce_widget_toggle_icon(input, &element[i], &element[i].param.active, SUI_3D_OBJECT_CHECKBOXUNCHECKED, pos_x + width - scale * (0.5 + SEDUCE_PANEL_RIM_SIZE), pos_y + scale * 0.5, scale * 2.0, time))
+					if(seduce_widget_toggle_icon(input, &element[i], &element[i].param.active, SEDUCE_OBJECT_SELECT, pos_x + width - scale * (0.5 + SEDUCE_PANEL_RIM_SIZE), pos_y + scale * 0.5, scale * 2.0, time))
 					{
 						float on[4] = {0.2, 0.6, 1.0, 0.9};
 						j = seduce_background_particle_color_allocate(NULL, on[0], on[1], on[2]);
@@ -361,7 +361,7 @@ void seduce_widget_list_element_list(BInputState *input, float pos_x, float pos_
 
 			break;
 			case SEDUCE_PET_TRIGGER :
-				if(seduce_widget_button_icon(input, &element[i], SUI_3D_OBJECT_CHECKBOXCHECKED, pos_x + width - scale * (0.5 + SEDUCE_PANEL_RIM_SIZE), pos_y + scale * 0.5, scale, time, NULL))
+				if(seduce_widget_button_icon(input, &element[i], SEDUCE_OBJECT_SELECTED, pos_x + width - scale * (0.5 + SEDUCE_PANEL_RIM_SIZE), pos_y + scale * 0.5, scale, time, NULL))
 					element[i].param.trigger = TRUE;
 			break;
 			case SEDUCE_PET_INTEGER :
@@ -380,7 +380,7 @@ void seduce_widget_list_element_list(BInputState *input, float pos_x, float pos_
 			{
 				float color[4] = {1, 1, 1, 1}, value; 
 				value = element[i].param.real.value;
-				if(seduce_widget_slider_radial(input, &element[i], &value, pos_x + width - scale * (0.5 + SEDUCE_PANEL_RIM_SIZE), pos_y + scale * 0.5, scale * 2.0, 2, 0, 1, time, color))
+				if(seduce_widget_slider_radial(input, &element[i], &value, pos_x + width - scale * (0.5 + SEDUCE_PANEL_RIM_SIZE), pos_y + scale * 0.5, scale * 2.0, 2, element[i].param.real.min, element[i].param.real.max, time, color))
 					element[i].param.real.value = value;
 			}
 			break;
@@ -1057,8 +1057,8 @@ extern void		betray_settings_4x4_matrix_set(uint id, float *matrix);*/
 		seduce_widget_slider_radial(input, 0.1, -0.3, 0.1, 0.5, amnimation,  &value,  &value, c[0], c[1], c[2], c[0], c[1], c[2]);
 
 		seduce_widget_wheel_radial(input, c, c, -0.1, 0.15, 0.1, 0.5, amnimation);
-		seduce_widget_button_icon(input, center, SUI_3D_OBJECT_MESSAGE, -0.1, -0.15,  0.1, amnimation, float *color);
-		seduce_widget_toggle_icon(input, &toggle, &toggle, SUI_3D_OBJECT_HIGHLIGHT, -0.1, -0.3, 0.1, amnimation);
+		seduce_widget_button_icon(input, center, SEDUCE_OBJECT_MESSAGE, -0.1, -0.15,  0.1, amnimation, float *color);
+		seduce_widget_toggle_icon(input, &toggle, &toggle, SEDUCE_OBJECT_HIGHLIGHT, -0.1, -0.3, 0.1, amnimation);
 		seduce_widget_select_radial(input, -0.1, 0.0, 0.1, 0.5, amnimation, lables, 6, &selected, &selected);
 
 

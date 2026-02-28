@@ -256,34 +256,63 @@ uint r_shader_uniform_block_member_count(RShader *shader, uint block)
 char *r_shader_uniform_block_member_name(RShader *shader, uint block, uint member)
 {
 	uint i, count;
-	for(i = count = 0; count <= member; i++)
+	for(i = count = 0; i < shader->uniform_count; i++)
 		if(shader->uniforms[i].block == block)
-			count++;
-	return shader->uniforms[i].name;
+			if(count++ == member)
+				return shader->uniforms[i].name;
+	return "Error";
 }
 
 RInputType r_shader_uniform_block_member_type(RShader *shader, uint block, uint member)
 {
 	uint i, count;
-	for(i = count = 0; count <= member; i++)
+	for(i = count = 0; i < shader->uniform_count; i++)
 		if(shader->uniforms[i].block == block)
-			count++;
-	return shader->uniforms[i].type;
+			if(count++ == member)
+				return shader->uniforms[i].type;
+	return 0;
 }
 
 int r_shader_uniform_block_member_offset(RShader *shader, uint block, uint member)
 {
 	uint i, count;
-	for(i = count = 0; count <= member; i++)
+	for(i = count = 0; i < shader->uniform_count; i++)
 		if(shader->uniforms[i].block == block)
-			count++;
-	return shader->uniforms[i].offset;
+			if(count++ == member)
+				return shader->uniforms[i].offset;
+	return 0;
 }
 
 uint r_shader_uniform_block_size(RShader *shader, uint block)
 {
 	return shader->blocks[block].size;
 }
+
+
+void r_shader_uniform_print(RShader *shader)
+{
+	uint i, j;
+	printf("%s uniform content:\n", shader->name);
+	for(i = 0; i < shader->block_count; i++)
+	{	
+		printf("%s{\n", shader->blocks[i].name);
+		for(j = 0; j < shader->uniform_count; j++)
+		{
+			if(shader->uniforms[j].block == i)
+			{
+
+				if(shader->uniforms[j].array_length > 1)
+					printf("\t%s %s %s[%u];\n", shader->uniforms[j].qualifyer, r_qualifyer_names[R_SIQ_COUNT], r_type_names[shader->uniforms[j].type],  shader->uniforms[j].name, shader->uniforms[j].array_length);
+				else
+						printf("\t%s %s %s;\n", shader->uniforms[j].qualifyer, r_type_names[shader->uniforms[j].type],  shader->uniforms[j].name);
+				
+			}
+		}
+		printf("}; size = %u\n", shader->blocks[i].size);	
+	}	
+}
+
+
 
 void r_shader_uniform_data_set(RShader *shader, void *data, uint block_id); 
 

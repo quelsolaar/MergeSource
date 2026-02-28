@@ -66,7 +66,11 @@ extern STypeInState	seduce_text_edit_float(BInputState *input, void *id, SeduceR
 extern STypeInState	seduce_text_edit_int(BInputState *input, void *id, SeduceRenderFont *font, int *value, float pos_x, float pos_y, float length, float size, boolean left, void (*done_func)(void *user, int value), void *user, float red, float green, float blue, float alpha, float active_red, float active_green, float active_blue, float active_alpha);/* Creates an editable text feild for typing in 32bit signed integer numbers. The text striing cna either be modifyed as the user types, or if given a done_func a call back can be called when the user completes the typing with a new string. */
 extern STypeInState	seduce_text_edit_uint(BInputState *input, void *id, SeduceRenderFont *font, uint *value, float pos_x, float pos_y, float length, float size, boolean left, void (*done_func)(void *user, uint value), void *user, float red, float green, float blue, float alpha, float active_red, float active_green, float active_blue, float active_alpha);/* Creates an editable text feild for typing in 64bit unsigend integer numbers.  Lable will be printed if the text field is empty. The text striing cna either be modifyed as the user types, or if given a done_func a call back can be called when the user completes the typing with a new string. */
 
-extern boolean seduce_text_edit_active(void *id); /* Returns True if the id is curtrently active in one of the text editing functions */
+extern boolean		seduce_text_edit_active_is_id(void *id); /* Returns True if the id is curtrently active in one of the text editing functions */
+extern boolean		seduce_text_edit_active_is_user_id(uint user_id); /* Returns True if the user_id is curtrently active in one of the text editing functions, ~0 == all users */
+extern void			seduce_text_activate(uint user_id, void *id,  char *text, uint buffer_size, void *done_func, void *user); /* Activates atype in widget as if it had been clicked on. */
+extern void			seduce_text_deactivate(uint user_id); /* Deactivates a users current type in widget */
+
 
 
 /* ------  Text block rendering and editing ------
@@ -145,6 +149,7 @@ typedef enum{
 	S_PUT_ANGLE,
 	S_PUT_BUTTON,
 	S_PUT_IMAGE,
+	S_PUT_NO_OP, // does not draw or do anthing
 	S_PUT_COUNT
 }SPopUpType;
 
@@ -167,7 +172,7 @@ typedef struct{
 }SUIPUElement;
 
 extern uint seduce_popup_simple(BInputState *input, uint user_id, float pos_x, float pos_y, char **lables, uint element_count, float *time, boolean active, float red, float green, float blue, float red_active, float green_active, float blue_active);
-extern uint seduce_popup(BInputState *input, void *id, SUIPUElement *elements, uint element_count, float time);
+extern uint seduce_popup(BInputState *input, void *id, SUIPUElement *elements, uint element_count, float time, boolean release_only);
 extern uint seduce_popup_text(BInputState *input, void *id, uint *selected, char **lables, uint element_count, SPopUpType type, float pos_x, float pos_y, float center, float size, float spacing, const char *text, float red, float green, float blue, float alpha, float red_select, float green_select, float blue_select, float alpha_select, boolean release_only);
 
 
@@ -175,6 +180,69 @@ extern uint seduce_popup_text(BInputState *input, void *id, uint *selected, char
 /*------- Draw icons -------
 Seduce has a number of built in icons that can bes used for byttons and other widgets. (These are most likly going to be desesigned to support HxA in the not too distant future.)
 */
+typedef enum{
+	SEDUCE_OBJECT_HANDLE_SURF_3D,
+	SEDUCE_OBJECT_HANDLE_AXIS,
+	SEDUCE_OBJECT_HANDLE_ROTATE_SNAP_LARGE,
+	SEDUCE_OBJECT_HANDLE_ROTATE_SNAP_SMALL,
+	SEDUCE_OBJECT_HANDLE_SIDE_3D,
+	SEDUCE_OBJECT_HANDLE_CORNER_2D,
+	SEDUCE_OBJECT_HANDLE_CORNER_3D,
+	SEDUCE_OBJECT_HANDLE_SIDE_2D,
+	SEDUCE_OBJECT_HANDLE_ROTATE_SNAP_HANDLE,
+	SEDUCE_OBJECT_HANDLE_NORMAL,
+	SEDUCE_OBJECT_HANDLE_NORMALLOCK,
+	SEDUCE_OBJECT_HANDLE_RADIUS,
+	SEDUCE_OBJECT_HANDLE_SCALE_AXIS,
+	SEDUCE_OBJECT_HANDLE_SCALE_PLAIN,
+	SEDUCE_OBJECT_HANDLE_SCALE_VOLUME,
+	SEDUCE_OBJECT_HANDLE_ROTATE,
+	SEDUCE_OBJECT_HANDLE_MOVE_3D,
+	SEDUCE_OBJECT_CAMERA,
+	SEDUCE_OBJECT_POINTER,
+	SEDUCE_OBJECT_BOOST,
+	SEDUCE_OBJECT_SELECTRING,
+	SEDUCE_OBJECT_MAIL,
+	SEDUCE_OBJECT_ADD,
+	SEDUCE_OBJECT_ATENTION,
+	SEDUCE_OBJECT_CLOSE,
+	SEDUCE_OBJECT_SUBTRACT,
+	SEDUCE_OBJECT_SELECTED,
+	SEDUCE_OBJECT_SELECT,
+	SEDUCE_OBJECT_PLAY,
+	SEDUCE_OBJECT_MENU,
+	SEDUCE_OBJECT_GEAR,
+	SEDUCE_OBJECT_PALETTE,
+	SEDUCE_OBJECT_PAUSE,
+	SEDUCE_OBJECT_HOME,
+	SEDUCE_OBJECT_STAR,
+	SEDUCE_OBJECT_STAR_OFF,
+	SEDUCE_OBJECT_SOUND,
+	SEDUCE_OBJECT_CHAT,
+	SEDUCE_OBJECT_BELL,
+	SEDUCE_OBJECT_DIAL,
+	SEDUCE_OBJECT_CURVE,
+	SEDUCE_OBJECT_POINT,
+	SEDUCE_OBJECT_STOP,
+	SEDUCE_OBJECT_CROSS,
+	SEDUCE_OBJECT_MARKER,
+	SEDUCE_OBJECT_ROTATE,
+	SEDUCE_OBJECT_UNDO,
+	SEDUCE_OBJECT_REDO,
+	SEDUCE_OBJECT_PREVIOUS,
+	SEDUCE_OBJECT_NEXT,
+	SEDUCE_OBJECT_UP,
+	SEDUCE_OBJECT_DOWN,
+	SEDUCE_OBJECT_LIGHT,
+	SEDUCE_OBJECT_IRIS,
+	SEDUCE_OBJECT_RELOAD,
+	SEDUCE_OBJECT_SAVE,
+	SEDUCE_OBJECT_FILE,
+	SEDUCE_OBJECT_CUT,
+	SEDUCE_OBJECT_QUELSOLAAR,
+	SEDUCE_OBJECT_QSSTAR,	
+	SEDUCE_OBJECT_COUNT
+}SeduceObjects;
 
 extern void seduce_object_3d_draw(BInputState *input, float pos_x, float pos_y, float pos_z, float size, uint id, float fade, float *color); /* draws a single object. */
 extern uint seduce_object_3d_count(); /* Returns the number of objects loaded. */
@@ -205,6 +273,8 @@ Panels are
 typedef enum{
 	SEDUCE_PET_BOOLEAN,
 	SEDUCE_PET_TRIGGER,
+	SEDUCE_PET_ICON_BOOLEAN,
+	SEDUCE_PET_ICON_TRIGGER,
 	SEDUCE_PET_INTEGER,
 	SEDUCE_PET_UNSIGNED_INTEGER,
 	SEDUCE_PET_INTEGER_BOUND,
@@ -234,6 +304,7 @@ typedef enum{
 	SEDUCE_PET_SECTION_END,
 	SEDUCE_PET_CUSTOM,
 	SEDUCE_PET_OK_CANCEL,
+	SEDUCE_PET_CLOSE_WINDOW,
 	SEDUCE_PET_COUNT
 }SeducePanelElementType;
 
@@ -253,6 +324,16 @@ typedef struct{
 		boolean trigger; 
 		int		integer;
 		uint	uinteger;
+		struct{
+			uint icon;
+			float color[4];
+			boolean toggle;
+		}icon_boolean;
+		struct{
+			uint icon;
+			float color[4];
+			boolean active;
+		}icon_trigger;
 		struct{
 			double value;
 			double max;
@@ -296,6 +377,8 @@ typedef struct{
 			void (*function)(BInputState *input, float pos_x, float pos_y, float width, void *user);
 		}custom;
 		SeducePanelElementOKCancelState ok_cancel;
+		boolean section;
+		boolean close_window;
 	}param;
 }SeducePanelElement;
 
@@ -322,6 +405,7 @@ typedef void SeduceBackgroundObject;
 
 extern SeduceBackgroundObject *seduce_background_object_allocate();
 extern void seduce_primitive_background_object_free(SeduceBackgroundObject *object);
+extern void seduce_primitive_background_object_clear(SeduceBackgroundObject *object);
 extern void seduce_background_shadow_add(SeduceBackgroundObject *object, float *list, uint count, boolean closed, float size);
 extern void seduce_background_shadow_square_add(SeduceBackgroundObject *object, float pos_x, float pos_y, float size_x, float size_y, float size);
 extern void seduce_background_shape_add(SeduceBackgroundObject *object, void *id, uint part, float *list, uint count, float surface_r, float surface_g, float surface_b, float surface_a);
@@ -541,7 +625,7 @@ extern void		seduce_view_slide(SViewData *v, boolean slide);
 extern void		seduce_view_interpolation_style_set(SViewData *v, SViewInterpolationStyle style, float speed);
 
 extern void		seduce_view_change_look_at(SViewData *v, float *target, float *camera, float *up);
-extern boolean 	seduce_view_change_right_button(SViewData *v, BInputState *input);
+extern boolean 	seduce_view_change_right_button(SViewData *v, BInputState *input, boolean rotate, boolean zoom, boolean pan);
 extern void		seduce_view_change_mouse_look(SViewData *v, BInputState *input);
 extern boolean 	seduce_view_change_multi_touch(SViewData *v, BInputState *input, void *id);
 extern boolean 	seduce_view_change_keys(SViewData *v, BInputState *input, void *id);

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #include "seduce.h"
-#include "s_draw_3d.h"
+
 
 typedef enum{
 	SEDUCE_SET_POINT,
@@ -163,7 +163,7 @@ void seduce_element_init()
 		SSortStorage.tooltip_color[0] = 0.1;
 		SSortStorage.tooltip_color[1] = 0.1;
 		SSortStorage.tooltip_color[2] = 0.1;
-		SSortStorage.tooltip_color[2] = 0.5;
+		SSortStorage.tooltip_color[3] = 0.5;
 		SSortStorage.debug_id = NULL;
 	}
 }
@@ -770,7 +770,7 @@ void seduce_element_debug(BInputState *input)
                 r_primitive_line_3d(p[0] - size, p[1] + size, 0, p[0] + size, p[1] - size, 0, color[0], color[1], color[2], 1.1);
                 break;
 				case SEDUCE_SET_LINE:
-                size = SSortStorage.element[i].pos[6];
+                size = p[6];
                 vec[0] = p[0] - p[3];
                 vec[1] = p[1] - p[4];
                 f_normalize2f(vec);
@@ -993,6 +993,7 @@ void s_sort_draw_tool_tip(BInputState *input, float x, float y, char *text, char
 
 extern void seduce_particle_update(BInputState *input);
 extern void seduce_surface_click_buffer_update(BInputState *input);
+extern void seduce_object_3d_lightning(input);
 #define SEDUCE_SORT_AXIS_LENGTH 0.1
 
 
@@ -1056,6 +1057,7 @@ void seduce_element_endframe(BInputState *input, boolean debug)
 			r_primitive_line_flush();
 			seduce_element_debug(input);
 		}
+		seduce_object_3d_lightning(input);
 	}
 	if(input->mode == BAM_MAIN)
 		seduce_surface_click_buffer_update(input);
@@ -1222,7 +1224,7 @@ void seduce_element_endframe(BInputState *input, boolean debug)
                         m[13] = SSortStorage.selected[user_id].draw[1];
                         r_matrix_push(&matrix);
                         r_matrix_matrix_mult(&matrix, m);
-                        seduce_object_3d_draw(input, 0, 0, 0, -0.04, SUI_3D_OBJECT_EXTEND, 1, NULL);
+                        seduce_object_3d_draw(input, 0, 0, 0, -0.04, SEDUCE_OBJECT_EXTEND, 1, NULL);
                         r_matrix_pop(&matrix);
                         for(i = 1; i < 8; i++)
                         {
@@ -1231,14 +1233,14 @@ void seduce_element_endframe(BInputState *input, boolean debug)
                             m[12] = SSortStorage.selected[user_id].draw[0] + input->axis[axis].axis[0] / f * f2;
                             m[13] = SSortStorage.selected[user_id].draw[1] + input->axis[axis].axis[1] / f * f2;
                             r_matrix_matrix_mult(&matrix, m);
-                            seduce_object_3d_draw(input, 0, 0, 0, -0.04, SUI_3D_OBJECT_EXTEND_CENTER, 1, NULL);
+                            seduce_object_3d_draw(input, 0, 0, 0, -0.04, SEDUCE_OBJECT_EXTEND_CENTER, 1, NULL);
                             r_matrix_pop(&matrix);
                         }
                         r_matrix_push(&matrix);
                         m[12] = SSortStorage.selected[user_id].draw[0] + input->axis[axis].axis[0] * axis_length;
                         m[13] = SSortStorage.selected[user_id].draw[1] + input->axis[axis].axis[1] * axis_length;
                         r_matrix_matrix_mult(&matrix, m);
-                        seduce_object_3d_draw(input, 0, 0, 0, -0.04, SUI_3D_OBJECT_EXTEND_TIP, 1, NULL);
+                        seduce_object_3d_draw(input, 0, 0, 0, -0.04, SEDUCE_OBJECT_EXTEND_TIP, 1, NULL);
                         r_matrix_pop(&matrix);
     
     
@@ -1281,7 +1283,7 @@ void seduce_element_endframe(BInputState *input, boolean debug)
 					if(input->mode == BAM_DRAW)
 					{
 						seduce_element_center_get(found, vec);
-						seduce_object_3d_draw(input, vec[0], vec[1], 0, -0.1, SUI_3D_OBJECT_SELECTRING, 1, NULL);
+						seduce_object_3d_draw(input, vec[0], vec[1], 0, -0.1, SEDUCE_OBJECT_SELECTRING, 1, NULL);
 					}
 					if(input->mode == BAM_EVENT)
 						if(betray_button_get(user_id, BETRAY_BUTTON_FACE_B))
@@ -1338,146 +1340,146 @@ void *seduce_element_colission_test(float *pos, uint *part, uint user_id)
 			switch(SSortStorage.element[i].type)
 			{
 				case SEDUCE_SET_POINT :
-                vec[0] = (SSortStorage.element[i].pos[0] - pos[0]) / SSortStorage.element[i].pos[3];
-                vec[1] = (SSortStorage.element[i].pos[1] - pos[1]) / SSortStorage.element[i].pos[3];
-                f = vec[0] * vec[0] + vec[1] * vec[1];
-                if(f < best)
-                {
-                    best = f;
-                    found_id = SSortStorage.element[i].id;
-                    found_part = SSortStorage.element[i].part;
-                    if(part != NULL)
-                        *part = found_part;
-                    found_pos[0] = pos[0];
-                    found_pos[1] = pos[1];
-                }
+					vec[0] = (SSortStorage.element[i].pos[0] - pos[0]) / SSortStorage.element[i].pos[3];
+					vec[1] = (SSortStorage.element[i].pos[1] - pos[1]) / SSortStorage.element[i].pos[3];
+					f = vec[0] * vec[0] + vec[1] * vec[1];
+					if(f < best)
+					{
+						best = f;
+						found_id = SSortStorage.element[i].id;
+						found_part = SSortStorage.element[i].part;
+						if(part != NULL)
+							*part = found_part;
+						found_pos[0] = pos[0];
+						found_pos[1] = pos[1];
+					}
 				break;
 				case SEDUCE_SET_LINE :
-                vec[0] = SSortStorage.element[i].pos[3] - SSortStorage.element[i].pos[0];
-                vec[1] = SSortStorage.element[i].pos[4] - SSortStorage.element[i].pos[1];
-                f = sqrt(vec[0] * vec[0] + vec[1] * vec[1]);
-                vec[0] /= f;
-                vec[1] /= f;
-                f2 = vec[0] * (pos[0] - SSortStorage.element[i].pos[0]) + vec[1] * (pos[1] - SSortStorage.element[i].pos[1]);
-                if(f2 > 0)
-                {
-                    if(f2 < f)
-                    {
-                        vec[0] = (SSortStorage.element[i].pos[0] + vec[0] * f2 - pos[0]) / SSortStorage.element[i].pos[6];
-                        vec[1] = (SSortStorage.element[i].pos[1] + vec[1] * f2 - pos[1]) / SSortStorage.element[i].pos[6];
-                        f = vec[0] * vec[0] + vec[1] * vec[1];
-                        if(f < best)
-                        {
-                            best = f;
-                            found_id = SSortStorage.element[i].id;
-                            found_part = SSortStorage.element[i].part;
-                            if(part != NULL)
-                                *part = found_part;
-                        }
-                    }
-                }
+					vec[0] = SSortStorage.element[i].pos[3] - SSortStorage.element[i].pos[0];
+					vec[1] = SSortStorage.element[i].pos[4] - SSortStorage.element[i].pos[1];
+					f = sqrt(vec[0] * vec[0] + vec[1] * vec[1]);
+					vec[0] /= f;
+					vec[1] /= f;
+					f2 = vec[0] * (pos[0] - SSortStorage.element[i].pos[0]) + vec[1] * (pos[1] - SSortStorage.element[i].pos[1]);
+					if(f2 > 0)
+					{
+						if(f2 < f)
+						{
+							vec[0] = (SSortStorage.element[i].pos[0] + vec[0] * f2 - pos[0]) / SSortStorage.element[i].pos[6];
+							vec[1] = (SSortStorage.element[i].pos[1] + vec[1] * f2 - pos[1]) / SSortStorage.element[i].pos[6];
+							f = vec[0] * vec[0] + vec[1] * vec[1];
+							if(f < best)
+							{
+								best = f;
+								found_id = SSortStorage.element[i].id;
+								found_part = SSortStorage.element[i].part;
+								if(part != NULL)
+									*part = found_part;
+							}
+						}
+					}
 				break;
 				case SEDUCE_SET_TRIANGLE :
-                vecs[0] = SSortStorage.element[i].pos[4] - SSortStorage.element[i].pos[1];
-                vecs[1] = SSortStorage.element[i].pos[0] - SSortStorage.element[i].pos[3];
-                vecs[2] = SSortStorage.element[i].pos[7] - SSortStorage.element[i].pos[4];
-                vecs[3] = SSortStorage.element[i].pos[3] - SSortStorage.element[i].pos[6];
-                vecs[4] = SSortStorage.element[i].pos[1] - SSortStorage.element[i].pos[7];
-                vecs[5] = SSortStorage.element[i].pos[6] - SSortStorage.element[i].pos[0];
-                if(seduce_element_triangle_test(pos, SSortStorage.element[i].pos, vecs))
-                {
-                    if(found_id != NULL)
-                    {
-                        for(j = 0; j < SSortStorage.element_count; j++)
-                        {
-                            if(SSortStorage.element[j].id == found_id && SSortStorage.element[j].part == found_part)
-                            {
-                                if(SSortStorage.element[j].type == SEDUCE_SET_TRIANGLE)
-                                {
-                                    vecs[0] = SSortStorage.element[j].pos[4] - SSortStorage.element[j].pos[1];
-                                    vecs[1] = SSortStorage.element[j].pos[0] - SSortStorage.element[j].pos[3];
-                                    vecs[2] = SSortStorage.element[j].pos[7] - SSortStorage.element[j].pos[4];
-                                    vecs[3] = SSortStorage.element[j].pos[3] - SSortStorage.element[j].pos[6];
-                                    vecs[4] = SSortStorage.element[j].pos[1] - SSortStorage.element[j].pos[7];
-                                    vecs[5] = SSortStorage.element[j].pos[6] - SSortStorage.element[j].pos[0];
-                                    if(seduce_element_triangle_test(found_pos, SSortStorage.element[i].pos, vecs))
-                                        return found_id;
-                                }
-                                if(SSortStorage.element[j].type == SEDUCE_SET_QUAD)
-                                {
-                                    vecs[0] = SSortStorage.element[j].pos[4] - SSortStorage.element[j].pos[1];
-                                    vecs[1] = SSortStorage.element[j].pos[0] - SSortStorage.element[j].pos[3];
-                                    vecs[2] = SSortStorage.element[j].pos[7] - SSortStorage.element[j].pos[4];
-                                    vecs[3] = SSortStorage.element[j].pos[3] - SSortStorage.element[j].pos[6];
-                                    vecs[4] = SSortStorage.element[j].pos[10] - SSortStorage.element[j].pos[7];
-                                    vecs[5] = SSortStorage.element[j].pos[6] - SSortStorage.element[j].pos[9];
-                                    vecs[6] = SSortStorage.element[j].pos[1] - SSortStorage.element[j].pos[10];
-                                    vecs[7] = SSortStorage.element[j].pos[9] - SSortStorage.element[j].pos[0];
-                                    if(seduce_element_quad_test(found_pos, SSortStorage.element[j].pos, vecs))
-                                        return found_id;
-                                }
-                            }
-                        }
-                        return found_id;
-                    }else
-                    {
-                        if(part != NULL)
-                            *part = SSortStorage.element[i].part;
-                        return SSortStorage.element[i].id;
-                    }
-                }
+					vecs[0] = SSortStorage.element[i].pos[4] - SSortStorage.element[i].pos[1];
+					vecs[1] = SSortStorage.element[i].pos[0] - SSortStorage.element[i].pos[3];
+					vecs[2] = SSortStorage.element[i].pos[7] - SSortStorage.element[i].pos[4];
+					vecs[3] = SSortStorage.element[i].pos[3] - SSortStorage.element[i].pos[6];
+					vecs[4] = SSortStorage.element[i].pos[1] - SSortStorage.element[i].pos[7];
+					vecs[5] = SSortStorage.element[i].pos[6] - SSortStorage.element[i].pos[0];
+					if(seduce_element_triangle_test(pos, SSortStorage.element[i].pos, vecs))
+					{
+						if(found_id != NULL)
+						{
+							for(j = 0; j < SSortStorage.element_count; j++)
+							{
+								if(SSortStorage.element[j].id == found_id && SSortStorage.element[j].part == found_part)
+								{
+									if(SSortStorage.element[j].type == SEDUCE_SET_TRIANGLE)
+									{
+										vecs[0] = SSortStorage.element[j].pos[4] - SSortStorage.element[j].pos[1];
+										vecs[1] = SSortStorage.element[j].pos[0] - SSortStorage.element[j].pos[3];
+										vecs[2] = SSortStorage.element[j].pos[7] - SSortStorage.element[j].pos[4];
+										vecs[3] = SSortStorage.element[j].pos[3] - SSortStorage.element[j].pos[6];
+										vecs[4] = SSortStorage.element[j].pos[1] - SSortStorage.element[j].pos[7];
+										vecs[5] = SSortStorage.element[j].pos[6] - SSortStorage.element[j].pos[0];
+										if(seduce_element_triangle_test(found_pos, SSortStorage.element[i].pos, vecs))
+											return found_id;
+									}
+									if(SSortStorage.element[j].type == SEDUCE_SET_QUAD)
+									{
+										vecs[0] = SSortStorage.element[j].pos[4] - SSortStorage.element[j].pos[1];
+										vecs[1] = SSortStorage.element[j].pos[0] - SSortStorage.element[j].pos[3];
+										vecs[2] = SSortStorage.element[j].pos[7] - SSortStorage.element[j].pos[4];
+										vecs[3] = SSortStorage.element[j].pos[3] - SSortStorage.element[j].pos[6];
+										vecs[4] = SSortStorage.element[j].pos[10] - SSortStorage.element[j].pos[7];
+										vecs[5] = SSortStorage.element[j].pos[6] - SSortStorage.element[j].pos[9];
+										vecs[6] = SSortStorage.element[j].pos[1] - SSortStorage.element[j].pos[10];
+										vecs[7] = SSortStorage.element[j].pos[9] - SSortStorage.element[j].pos[0];
+										if(seduce_element_quad_test(found_pos, SSortStorage.element[j].pos, vecs))
+											return found_id;
+									}
+								}
+							}
+							return found_id;
+						}else
+						{
+							if(part != NULL)
+								*part = SSortStorage.element[i].part;
+							return SSortStorage.element[i].id;
+						}
+					}
 				break;
 				case SEDUCE_SET_QUAD :
-                vecs[0] = SSortStorage.element[i].pos[4] - SSortStorage.element[i].pos[1];
-                vecs[1] = SSortStorage.element[i].pos[0] - SSortStorage.element[i].pos[3];
-                vecs[2] = SSortStorage.element[i].pos[7] - SSortStorage.element[i].pos[4];
-                vecs[3] = SSortStorage.element[i].pos[3] - SSortStorage.element[i].pos[6];
-                vecs[4] = SSortStorage.element[i].pos[10] - SSortStorage.element[i].pos[7];
-                vecs[5] = SSortStorage.element[i].pos[6] - SSortStorage.element[i].pos[9];
-                vecs[6] = SSortStorage.element[i].pos[1] - SSortStorage.element[i].pos[10];
-                vecs[7] = SSortStorage.element[i].pos[9] - SSortStorage.element[i].pos[0];
-                if(seduce_element_quad_test(pos, SSortStorage.element[i].pos, vecs))
-                {
-                    if(found_id != NULL)
-                    {
-                        for(j = 0; j < SSortStorage.element_count; j++)
-                        {
-                            if(SSortStorage.element[j].id == found_id && SSortStorage.element[j].part == found_part)
-                            {
-                                if(SSortStorage.element[j].type == SEDUCE_SET_TRIANGLE)
-                                {
-                                    vecs[0] = SSortStorage.element[j].pos[4] - SSortStorage.element[j].pos[1];
-                                    vecs[1] = SSortStorage.element[j].pos[0] - SSortStorage.element[j].pos[3];
-                                    vecs[2] = SSortStorage.element[j].pos[7] - SSortStorage.element[j].pos[4];
-                                    vecs[3] = SSortStorage.element[j].pos[3] - SSortStorage.element[j].pos[6];
-                                    vecs[4] = SSortStorage.element[j].pos[1] - SSortStorage.element[j].pos[7];
-                                    vecs[5] = SSortStorage.element[j].pos[6] - SSortStorage.element[j].pos[0];
-                                    if(seduce_element_triangle_test(found_pos, SSortStorage.element[i].pos, vecs))
-                                        return found_id;
-                                }
-                                if(SSortStorage.element[j].type == SEDUCE_SET_QUAD)
-                                {
-                                    vecs[0] = SSortStorage.element[j].pos[4] - SSortStorage.element[j].pos[1];
-                                    vecs[1] = SSortStorage.element[j].pos[0] - SSortStorage.element[j].pos[3];
-                                    vecs[2] = SSortStorage.element[j].pos[7] - SSortStorage.element[j].pos[4];
-                                    vecs[3] = SSortStorage.element[j].pos[3] - SSortStorage.element[j].pos[6];
-                                    vecs[4] = SSortStorage.element[j].pos[10] - SSortStorage.element[j].pos[7];
-                                    vecs[5] = SSortStorage.element[j].pos[6] - SSortStorage.element[j].pos[9];
-                                    vecs[6] = SSortStorage.element[j].pos[1] - SSortStorage.element[j].pos[10];
-                                    vecs[7] = SSortStorage.element[j].pos[9] - SSortStorage.element[j].pos[0];
-                                    if(seduce_element_quad_test(found_pos, SSortStorage.element[j].pos, vecs))
-                                        return found_id;
-                                }
-                            }
-                        }
-                        return found_id;
-                    }else
-                    {
-                        if(part != NULL)
-                            *part = SSortStorage.element[i].part;
-                        return SSortStorage.element[i].id;
-                    }
-                }
+					vecs[0] = SSortStorage.element[i].pos[4] - SSortStorage.element[i].pos[1];
+					vecs[1] = SSortStorage.element[i].pos[0] - SSortStorage.element[i].pos[3];
+					vecs[2] = SSortStorage.element[i].pos[7] - SSortStorage.element[i].pos[4];
+					vecs[3] = SSortStorage.element[i].pos[3] - SSortStorage.element[i].pos[6];
+					vecs[4] = SSortStorage.element[i].pos[10] - SSortStorage.element[i].pos[7];
+					vecs[5] = SSortStorage.element[i].pos[6] - SSortStorage.element[i].pos[9];
+					vecs[6] = SSortStorage.element[i].pos[1] - SSortStorage.element[i].pos[10];
+					vecs[7] = SSortStorage.element[i].pos[9] - SSortStorage.element[i].pos[0];
+					if(seduce_element_quad_test(pos, SSortStorage.element[i].pos, vecs))
+					{
+						if(found_id != NULL)
+						{
+							for(j = 0; j < SSortStorage.element_count; j++)
+							{
+								if(SSortStorage.element[j].id == found_id && SSortStorage.element[j].part == found_part)
+								{
+									if(SSortStorage.element[j].type == SEDUCE_SET_TRIANGLE)
+									{
+										vecs[0] = SSortStorage.element[j].pos[4] - SSortStorage.element[j].pos[1];
+										vecs[1] = SSortStorage.element[j].pos[0] - SSortStorage.element[j].pos[3];
+										vecs[2] = SSortStorage.element[j].pos[7] - SSortStorage.element[j].pos[4];
+										vecs[3] = SSortStorage.element[j].pos[3] - SSortStorage.element[j].pos[6];
+										vecs[4] = SSortStorage.element[j].pos[1] - SSortStorage.element[j].pos[7];
+										vecs[5] = SSortStorage.element[j].pos[6] - SSortStorage.element[j].pos[0];
+										if(seduce_element_triangle_test(found_pos, SSortStorage.element[i].pos, vecs))
+											return found_id;
+									}
+									if(SSortStorage.element[j].type == SEDUCE_SET_QUAD)
+									{
+										vecs[0] = SSortStorage.element[j].pos[4] - SSortStorage.element[j].pos[1];
+										vecs[1] = SSortStorage.element[j].pos[0] - SSortStorage.element[j].pos[3];
+										vecs[2] = SSortStorage.element[j].pos[7] - SSortStorage.element[j].pos[4];
+										vecs[3] = SSortStorage.element[j].pos[3] - SSortStorage.element[j].pos[6];
+										vecs[4] = SSortStorage.element[j].pos[10] - SSortStorage.element[j].pos[7];
+										vecs[5] = SSortStorage.element[j].pos[6] - SSortStorage.element[j].pos[9];
+										vecs[6] = SSortStorage.element[j].pos[1] - SSortStorage.element[j].pos[10];
+										vecs[7] = SSortStorage.element[j].pos[9] - SSortStorage.element[j].pos[0];
+										if(seduce_element_quad_test(found_pos, SSortStorage.element[j].pos, vecs))
+											return found_id;
+									}
+								}
+							}
+							return found_id;
+						}else
+						{
+							if(part != NULL)
+								*part = SSortStorage.element[i].part;
+							return SSortStorage.element[i].id;
+						}
+					}
 				break;
 			}
 		}
@@ -1637,7 +1639,7 @@ void seduce_draw_tool_tip_one_old(BInputState *input, float x, float y)
 		r_matrix_matrix_mult(NULL, matrix);
 		if((int)(input->minute_time * 100.0) % 5 == 0)
 			r_matrix_rotate(NULL, input->minute_time * 360 * 100.0, 0, 1, 0);
-		seduce_object_3d_draw(input, 0, -0.016 + time * -0.16, 0, scale * 0.05, SUI_3D_OBJECT_MARKER, 1, color);
+	//	seduce_object_3d_draw(input, 0, -0.016 + time * -0.16, 0, scale * 0.05, SEDUCE_OBJECT_MARKER, 1, color);
 		r_matrix_pop(NULL);
         
 		if(matrix[4] > 0.1)
@@ -1765,7 +1767,7 @@ void seduce_test_popup_func(BInputState *input, float time, void *user)
 	{
 		vec[0] = sin((float)i * PI * 2.0 / 8.0) * 0.3;
 		vec[1] = cos((float)i * PI * 2.0 / 8.0) * 0.3;
-		seduce_widget_toggle_icon(input, &seduce_demo_toggle[i], &seduce_demo_toggle[i], SUI_3D_OBJECT_CHECKBOXCHECKED, vec[0], vec[1], 0.1, time);
+		seduce_widget_toggle_icon(input, &seduce_demo_toggle[i], &seduce_demo_toggle[i], SEDUCE_OBJECT_SELECTED, vec[0], vec[1], 0.1, time);
         
 		seduce_text_line_draw(NULL, vec[0] + seduce_text_line_length(NULL, SEDUCE_T_SIZE, SEDUCE_T_SPACE, names[i], -1) * -0.5, vec[1] - 0.07, SEDUCE_T_SIZE, SEDUCE_T_SPACE, names[i], 1, 1, 1, 0.7 * time, -1);
         
@@ -1776,6 +1778,8 @@ void seduce_test_popup_func(BInputState *input, float time, void *user)
 extern void seduce_color_settings(BInputState *input, boolean active);
 boolean seduce_background_shape_draw2(BInputState *input, void *id, float a_x, float a_y, float b_x, float b_y, float c_x, float c_y, float d_x, float d_y, float timer, float normal_x, float normal_y, float *center);
 void r_matrix_projection_screenf_new(RMatrix *matrix, float *output, float x, float y, float z);
+
+#ifdef SEDUCE_TEST
 
 void seduce_element_test(BInputState *input, void *user_pointer)
 {
@@ -1892,13 +1896,13 @@ void seduce_element_test(BInputState *input, void *user_pointer)
             }*/
         
 		if(seduce_demo_toggle[2])
-			for(i = 0; i < SUI_3D_OBJECT_COUNT; i++)
-            seduce_object_3d_draw(input, 0.1 * (i / 6) - 0.6, 0.1 * (i % 6) - 0.4, 0, 0.05, i, FALSE, NULL);
+			for(i = 0; i < SEDUCE_OBJECT_COUNT; i++)
+            seduce_object_3d_draw(input, 0.1 * (i / 6) - 0.6, 0.1 * (i % 6) - 0.4, 0, 0.05, i, 1, NULL);
         
-		if(seduce_demo_toggle[3])
-			for(i = 0; i < SUI_3D_OBJECT_COUNT; i++)
-            seduce_object_3d_draw(input, f_randnf(i * 3 + 0), f_randnf(i * 3 + 1), f_randnf(i * 3 + 2) * 0.99, 0.05, SUI_3D_OBJECT_MARKER, FALSE, NULL);
-        
+/*		if(seduce_demo_toggle[3])
+			for(i = 0; i < SEDUCE_OBJECT_COUNT; i++)
+            seduce_object_3d_draw(input, f_randnf(i * 3 + 0), f_randnf(i * 3 + 1), f_randnf(i * 3 + 2) * 0.99, 0.05, SEDUCE_OBJECT_MARKER, 1, NULL);
+ */       
 		seduce_background_shape_matrix_interact(input, m, m, TRUE, TRUE);
 		r_matrix_pop(&matrix);
         
@@ -1914,7 +1918,7 @@ void seduce_element_test(BInputState *input, void *user_pointer)
                     float test[3];
                     r_matrix_projection_surfacef(&matrix, test, 2, input->pointers[0].pointer_x, input->pointers[0].pointer_y);
                 //	r_matrix_projection_axisf(&matrix, test, 0, input->pointers[0].pointer_x, input->pointers[0].pointer_y);
-                    seduce_object_3d_draw(input, test[0], test[1], test[2], 0.2, SUI_3D_OBJECT_MARKER, FALSE, NULL);
+                    seduce_object_3d_draw(input, test[0], test[1], test[2], 0.2, SEDUCE_OBJECT_MARKER, 1, NULL);
                 }*/
             /*		seduce_widget_slider_radial(input, 0.1, 0.15, 0.1, 0.5, amnimation,  &c[0], &c[1], c[0], c[1], c[2], c[0], c[1], c[2]);
                     seduce_widget_slider_radial(input, 0.1, 0.0, 0.1, 0.5, amnimation,  &c[1], &c[2], c[0], c[1], c[2], c[0], c[1], c[2]);
@@ -1923,12 +1927,12 @@ void seduce_element_test(BInputState *input, void *user_pointer)
         */
             
 			
-            seduce_popup_detect_icon(input, seduce_test_popup_func, SUI_3D_OBJECT_STOP, 0.5, 0.0, 0.1, amnimation, seduce_test_popup_func, NULL, TRUE, NULL);
+            seduce_popup_detect_icon(input, seduce_test_popup_func, SEDUCE_OBJECT_STOP, 0.5, 0.0, 0.1, amnimation, seduce_test_popup_func, NULL, TRUE, NULL);
             
             
 			seduce_widget_color_wheel_radial(input, c, c, -0.1, 0.15, 0.1, 0.5, amnimation);
-            //		seduce_widget_button_icon(input, center, SUI_3D_OBJECT_MESSAGE, -0.1, -0.15,  0.1, amnimation);
-			seduce_widget_toggle_icon(input, &toggle[1], &toggle[1], SUI_3D_OBJECT_CHECKBOXCHECKED, -0.1, -0.3, 0.1, amnimation);
+            //		seduce_widget_button_icon(input, center, SEDUCE_OBJECT_MESSAGE, -0.1, -0.15,  0.1, amnimation);
+			seduce_widget_toggle_icon(input, &toggle[1], &toggle[1], SEDUCE_OBJECT_SELECTED, -0.1, -0.3, 0.1, amnimation);
 			seduce_widget_select_radial(input, &selected, &selected, lables, 6, S_PUT_ANGLE, -0.1, 0.0, 0.1, 0.5, amnimation, TRUE);
             
 			f = 0.2;
@@ -2116,7 +2120,7 @@ void seduce_element_test(BInputState *input, void *user_pointer)
 			float output[2];
 			seduce_element_add_surface(input, &c[0]);
 			seduce_element_surface_project(input, &c[0], output, input->pointers[0].pointer_x, input->pointers[0].pointer_y);
-			seduce_widget_button_icon(input, center, SUI_3D_OBJECT_MESSAGE, output[0], output[1],  0.1, amnimation);
+			seduce_widget_button_icon(input, center, SEDUCE_OBJECT_MESSAGE, output[0], output[1],  0.1, amnimation);
 		}*/
         
         /*	{
@@ -2131,7 +2135,7 @@ void seduce_element_test(BInputState *input, void *user_pointer)
         
 		{
 			float red[4] = {1.0, 0.1, 0.3, 1.0};
-			if(seduce_widget_button_icon(input, &button, SUI_3D_OBJECT_CLOSE, -0.97, aspect - 0.03,  0.02, 1, red))
+			if(seduce_widget_button_icon(input, &button, SEDUCE_OBJECT_CLOSE, -0.97, aspect - 0.03,  0.02, 1, red))
 			{
 				seduce_translate_save("seduce_language_translation.txt");
 				exit(0);
@@ -2158,3 +2162,4 @@ void seduce_element_test(BInputState *input, void *user_pointer)
 	}
     
 }
+#endif

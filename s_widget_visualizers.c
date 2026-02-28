@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "seduce.h"
-#include "s_draw_3d.h"
+
 
 void s_widget_pie(BInputState *input, float pos_x, float pos_y, float size, float scale, float time, uint slize_count, float *values, float *colors)
 {

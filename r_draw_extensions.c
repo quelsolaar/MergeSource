@@ -8,12 +8,29 @@
 void *(*r_gl_GetProcAddress)(const char* proc) = NULL;
 GLubyte *(APIENTRY *r_glGetString)(GLenum name) = NULL;
 GLubyte *(APIENTRY *r_glGetStringi)(GLenum name, GLuint index) = NULL;
+GLuint (APIENTRY *r_glGetDebugMessageLog)(	GLuint count, GLsizei bufSize, GLenum *sources, GLenum *types, GLuint *ids, GLenum *severities, GLsizei *lengths, char *messageLog) = NULL; 
+
+void r_extension_error(void)
+{
+	char buffer[4096];
+return;
+	while(r_glGetDebugMessageLog(1, 4096, NULL, NULL, NULL, NULL, NULL, buffer))
+	{
+		printf("Relinquish: GL Error: %s\n", buffer);
+		printf("");
+	}
+}
+
 
 void r_extension_init(void *(*glGetProcAddr)(const char* proc))
 {
+	int i = 0;
     r_gl_GetProcAddress = glGetProcAddr;
     r_glGetString = r_gl_GetProcAddress("glGetString");
     r_glGetStringi = r_gl_GetProcAddress("glGetStringi");
+	r_glGetDebugMessageLog = r_gl_GetProcAddress("glGetDebugMessageLog");
+
+	i += 0;
 }
 
 void *r_extension_get_address(const char* proc)
@@ -87,6 +104,7 @@ boolean r_resource_debug()
 	printf("FBOs allocated %u\n", r_framebuffer_debug_fbo_allocated);
 	printf("Images allocated %u\n", r_framebuffer_debug_image_allocated);
 	printf("Arrays allocated %u\n", r_array_debug_allocated);
+	return TRUE;
 }
 
 

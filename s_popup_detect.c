@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #include "seduce.h"
-#include "s_draw_3d.h"
+
 
 extern void seduce_background_circle_draw(BInputState *input, float pos_x, float pos_y, uint splits, float timer, uint selected);
 extern void seduce_background_angle(BInputState *input, void *id, uint part, float pos_x, float pos_y, float angle_a, float angle_b, float timer);
@@ -510,39 +510,21 @@ STypeInState seduce_popup_detect_icon(BInputState *input, void *id, uint icon, f
 	if(input->mode == BAM_DRAW && scale > 0.0)
 	{		
 		SeduceLineObject *object = NULL;
-		float *c, white[4] = {1, 1, 1, 1}, pos[3];
+		float *c, white[4] = {1, 1, 1, 1}, gray[4] = {0.8, 0.8, 0.8, 1.0}, pos[3];
 		if(color == NULL)
-			c = white;
-		else
+		{
+			if(seduce_element_active(input, id, NULL))
+				c = white;
+			else
+				c = gray;
+		}else
 			c = color;
-		scale *= 0.5;
-		object = seduce_primitive_line_object_allocate();
-		seduce_primitive_line_add_3d(object,
-						pos_x + scale * 0.75, pos_y, 0,
-						pos_x + scale * -0.75, pos_y, 0,
-						c[0], c[1], c[2], c[3],
-						c[0], c[1], c[2], c[3]);
-		seduce_primitive_line_add_3d(object,
-						pos_x + scale * 0.5, pos_y + scale * -0.5, 0,
-						pos_x + scale * -0.5, pos_y + scale * -0.5, 0,
-						c[0], c[1], c[2], c[3],
-						c[0], c[1], c[2], c[3]);
-		seduce_primitive_line_add_3d(object,
-						pos_x + scale * 0.5, pos_y + scale * 0.5, 0,
-						pos_x + scale * -0.5, pos_y + scale * 0.5, 0,
-						c[0], c[1], c[2], c[3],
-						c[0], c[1], c[2], c[3]);
-		seduce_primitive_circle_add_3d(object,
-						pos_x, pos_y, 0,
-						0, 1, 0,
-						0, 0, 1,
-						scale,
-						0, 1,
-						0, scale,
-						c[0], c[1], c[2], c[3],
-						c[0], c[1], c[2], c[3]);
-		seduce_primitive_line_draw(object, 1.0, 1.0, 1.0, 1.0);
-		seduce_primitive_line_object_free(object);
+		r_matrix_push(NULL);
+		r_matrix_translate(NULL, pos_x, pos_y, 0);
+		r_matrix_rotate(NULL, 360.0 - time * 360.0, 0, 1, 0);
+		r_matrix_scale(NULL, time, 2 - time, time);
+		seduce_object_3d_draw(input, 0, 0, 0, scale, icon, time, c);
+		r_matrix_pop(NULL);
 		pos[0] = pos_x;
 		pos[1] = pos_y;
 		pos[2] = 0;

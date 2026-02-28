@@ -251,9 +251,17 @@ STypeInState seduce_select_draw(BInputState *input, void *id, uint user, float r
 
 boolean seduce_select_test(float x, float y, float *pos_a, float *pos_b)
 {
+	printf(" %f %f - %f %f - %f\n", pos_a[0], pos_a[1], pos_b[0],  pos_b[1], (pos_a[1] - pos_b[1]) );
 	if((pos_a[1] > y && pos_b[1] < y) || (pos_a[1] < y && pos_b[1] > y))
-         if((((y - pos_b[1]) / (pos_a[1] - pos_b[1])) * (pos_a[0] - pos_b[0])) > x - pos_b[0])
-			 return TRUE;
+	{
+		printf(" %f > %f\n", (((y - pos_b[1]) / (pos_a[1] - pos_b[1])) * (pos_a[0] - pos_b[0])), x - pos_b[0]);
+		printf(" %f %f %f \n", (y - pos_b[1]), (pos_a[1] - pos_b[1]), (pos_a[0] - pos_b[0]));
+		if((((y - pos_b[1]) / (pos_a[1] - pos_b[1])) * (pos_a[0] - pos_b[0])) > x - pos_b[0])
+		{
+			printf(" TRUE \n");
+			return TRUE;
+		}
+	}
 	return FALSE;
 }
 
@@ -269,10 +277,14 @@ boolean seduce_select_query_pos(BInputState *input, uint user_id, float x, float
 			for(j = 0; j < count; j++)
 				if(seduce_select_test(x, y, &seduce_global_select.events[i].array[j * 6], &seduce_global_select.events[i].array[j * 6 + 3]))
 					front++;
+			printf("close!!\n");
 			if(seduce_select_test(x, y, &seduce_global_select.events[i].array[count * 6], &seduce_global_select.events[i].array[0]))
 				front++;
+			printf("Return %u\n", front);
 			if(front % 2 == 1)
+			{				
 				return TRUE;
+			}
 		}
 	}
 	return FALSE;

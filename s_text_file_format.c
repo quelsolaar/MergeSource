@@ -92,6 +92,8 @@ SeduceFontCharacter *seduce_character_find(SeduceRenderFont *font, uint32 charac
 	if(branch->character_code_end <= character)
 		return NULL;
 	base = 1;
+	if(character > 128)
+		character += 0;
 	for(generation = 1; TRUE; generation *= 2)
 	{
 		base += generation;

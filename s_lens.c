@@ -107,7 +107,7 @@ RShader *seduce_lens_shader_get()
 		return shader;
 	shader = r_shader_create_simple(buffer, 2048, s_lens_shader_vertex, s_lens_shader_fragment, "lens");
 	r_shader_texture_set(shader, 0, seduce_line_texture_id);
-	r_shader_state_set_blend_mode(shader, GL_ONE, GL_ZERO);
+	r_shader_state_set_blend_mode(shader, R_BM_ONE, R_BM_ZERO);
 	return shader;
 }
 

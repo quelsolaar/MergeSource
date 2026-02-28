@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "seduce.h"
-#include "s_draw_3d.h"
+
 
 
 extern void seduce_object_3d_draw(BInputState *input, float pos_x, float pos_y, float pos_z, float scale, uint id, float fade,  float *color);
@@ -161,6 +161,8 @@ typedef struct{
 	RMatrix matrix;
 }SRadialGrab;
 
+
+// TODO radial slider should have option for no text input.
 STypeInState seduce_widget_slider_radial(BInputState *input, void *id, float *value, float pos_x, float pos_y, float size, float scale, float min, float max, float time, float *color)
 {
 	static boolean *a_button, *a_button_last;
@@ -168,13 +170,13 @@ STypeInState seduce_widget_slider_radial(BInputState *input, void *id, float *va
 	static uint frame_id = -1;
 	int i, j, k, axis, pointer_count, user_count;
 	char text_buf[128];
-	float c[4] = {1, 1, 1, 1};
+	float c[4] = {1, 1, 1, 1}, normalized_value;
 	RMatrix *matrix, overlay;
 	if(color == NULL)
 		color = c;
 	
 
-
+	normalized_value = (*value - min) / (max - min);
 	user_count = betray_support_functionality(B_SF_USER_COUNT_MAX);
 	pointer_count = betray_support_functionality(B_SF_POINTER_COUNT_MAX);
 	if(grab == NULL)
@@ -232,12 +234,12 @@ STypeInState seduce_widget_slider_radial(BInputState *input, void *id, float *va
 			{
 				snap = -1;
 				if(i < pointer_count)
-					seduce_widget_slider_radial_value(input, input->pointers[i].pointer_x - grab[i].pos[0], input->pointers[i].pointer_y - grab[i].pos[1], scale, &snap, aim, *value, grab[i].init_value);			
+					seduce_widget_slider_radial_value(input, input->pointers[i].pointer_x - grab[i].pos[0], input->pointers[i].pointer_y - grab[i].pos[1], scale, &snap, aim, normalized_value, grab[i].init_value);			
 				else
 				{
 					axis = seduce_element_primary_axis(input, i - pointer_count);
 					if(axis != -1)
-						seduce_widget_slider_radial_value(input, input->axis[axis].axis[0] * scale, input->axis[axis].axis[1] * scale, scale, &snap, aim, *value, grab[i].init_value);			
+						seduce_widget_slider_radial_value(input, input->axis[axis].axis[0] * scale, input->axis[axis].axis[1] * scale, scale, &snap, aim, normalized_value, grab[i].init_value);			
 				}
 
 				seduce_widget_overlay_matrix(&overlay);
@@ -274,8 +276,8 @@ STypeInState seduce_widget_slider_radial(BInputState *input, void *id, float *va
 									0, 1, 0,
 									0, 0, 1,
 									inner * 1.075,
-									0, *value,
-									0, *value * inner * 2.0 * PI,
+									0, normalized_value,
+									0, normalized_value * inner * 2.0 * PI,
 									color[0], color[1], color[2], 1,
 									color[0], color[1], color[2], 1);
 				seduce_primitive_circle_add_3d(snaps,
@@ -283,8 +285,8 @@ STypeInState seduce_widget_slider_radial(BInputState *input, void *id, float *va
 									0, 1, 0,
 									0, 0, 1,
 									outer * 1.075,
-									*value, (1.0 - *value),
-									*value * inner * 2.0 * PI, (1.0 - *value) * inner * 2.0 * PI,
+									normalized_value, (1.0 - normalized_value),
+									normalized_value * inner * 2.0 * PI, (1.0 - normalized_value) * inner * 2.0 * PI,
 									0.2, 0.2, 0.2, 1,
 									0.2, 0.2, 0.2, 1);
 				k = 0;
@@ -364,7 +366,7 @@ STypeInState seduce_widget_slider_radial(BInputState *input, void *id, float *va
 				
 				seduce_primitive_line_add_3d(snaps,
 							0, 0, 0,
-							sin(*value * 2.0 * PI), cos(*value * 2.0 * PI), 0,
+							sin(normalized_value * 2.0 * PI), cos(normalized_value * 2.0 * PI), 0,
 							color[0], color[1], color[2], 1,
 							color[0], color[1], color[2], 1);
 				seduce_primitive_line_draw(snaps, 1.0, 1.0, 1.0, 1.0);
@@ -391,7 +393,7 @@ STypeInState seduce_widget_slider_radial(BInputState *input, void *id, float *va
 				r_matrix_push(&overlay);
 				r_matrix_translate(&overlay, aim[0], aim[1], 0);
 				r_matrix_rotate(&overlay, *value * -360.0, 0, 0, 1);
-				seduce_object_3d_draw(input, 0, 0, 0, 0.1, SUI_3D_OBJECT_SNAPLOCK, timer, color);
+				seduce_object_3d_draw(input, 0, 0, 0, 0.1, SEDUCE_OBJECT_SNAPLOCK, timer, color);
 				r_matrix_pop(&overlay);
 				f = (grab[i].timer - 0.2) / 0.3 * 0.3;
 				if(f > 0.0)
@@ -405,9 +407,9 @@ STypeInState seduce_widget_slider_radial(BInputState *input, void *id, float *va
 						r_matrix_push(&overlay);
 						r_matrix_rotate(&overlay, j * -360.0 / SUI_SLIDER_RADIAL_SNAP_ONE, 0, 0, 1);
 						if(j == snap)
-							seduce_object_3d_draw(input, 0, f, 0, 0.15, SUI_3D_OBJECT_SNAP_SMALL, timer, on);
+							seduce_object_3d_draw(input, 0, f, 0, 0.15, SEDUCE_OBJECT_SNAP_SMALL, timer, on);
 						else
-							seduce_object_3d_draw(input, 0, f, 0, 0.1, SUI_3D_OBJECT_SNAP_SMALL, timer, NULL);
+							seduce_object_3d_draw(input, 0, f, 0, 0.1, SEDUCE_OBJECT_SNAP_SMALL, timer, NULL);
 						r_matrix_pop(&overlay);
 					}
 					r_matrix_pop(&overlay);
@@ -421,9 +423,9 @@ STypeInState seduce_widget_slider_radial(BInputState *input, void *id, float *va
 					r_matrix_rotate(&overlay, j * -360.0 / SUI_SLIDER_RADIAL_SNAP_TWO + (1 - grab[i].timer) * 90.0, 0, 0, 1);
 		
 					if(j + SUI_SLIDER_RADIAL_SNAP_ONE == snap)
-						seduce_object_3d_draw(input, 0, grab[i].timer * 0.4, 0, 0.15, SUI_3D_OBJECT_SNAP_LARGE, timer, on);
+						seduce_object_3d_draw(input, 0, grab[i].timer * 0.4, 0, 0.15, SEDUCE_OBJECT_SNAP_LARGE, timer, on);
 					else
-						seduce_object_3d_draw(input, 0, grab[i].timer * 0.4, 0, 0.1, SUI_3D_OBJECT_SNAP_LARGE, timer, NULL);
+						seduce_object_3d_draw(input, 0, grab[i].timer * 0.4, 0, 0.1, SEDUCE_OBJECT_SNAP_LARGE, timer, NULL);
 					r_matrix_pop(&overlay);
 				}
 				r_matrix_pop(&overlay);
@@ -439,9 +441,9 @@ STypeInState seduce_widget_slider_radial(BInputState *input, void *id, float *va
 						r_matrix_push(&overlay);
 						r_matrix_rotate(&overlay, j * -360.0 / SUI_SLIDER_RADIAL_SNAP_THREE, 0, 0, 1);
 						if(j + SUI_SLIDER_RADIAL_SNAP_ONE + SUI_SLIDER_RADIAL_SNAP_TWO == snap)
-							seduce_object_3d_draw(input, 0, f, 0, scale * 0.15, SUI_3D_OBJECT_SNAP_SMALL, timer, on);
+							seduce_object_3d_draw(input, 0, f, 0, scale * 0.15, SEDUCE_OBJECT_SNAP_SMALL, timer, on);
 						else
-							seduce_object_3d_draw(input, 0, f, 0, scale * 0.1, SUI_3D_OBJECT_SNAP_SMALL, timer, NULL);
+							seduce_object_3d_draw(input, 0, f, 0, scale * 0.1, SEDUCE_OBJECT_SNAP_SMALL, timer, NULL);
 						r_matrix_pop(&overlay);
 					}
 					r_matrix_pop(&overlay);
@@ -458,7 +460,7 @@ STypeInState seduce_widget_slider_radial(BInputState *input, void *id, float *va
 							0, 1, 0,
 							0, 0, 1,
 							size,
-							0, *value,
+							0, normalized_value,
 							0, size * 2 * PI,
 							color[0], color[1], color[2], 1,
 							color[0], color[1], color[2], 1);
@@ -467,8 +469,8 @@ STypeInState seduce_widget_slider_radial(BInputState *input, void *id, float *va
 							0, 1, 0,
 							0, 0, 1,
 							size,
-							*value, (1.0 - *value),
-							size * *value * 2 * PI, size * (1.0 - *value) * 2 * PI,
+							normalized_value, (1.0 - normalized_value),
+							size * normalized_value * 2 * PI, size * (1.0 - normalized_value) * 2 * PI,
 							0.2, 0.2, 0.2, 1,
 							0.2, 0.2, 0.2, 1);
 		seduce_primitive_line_draw(object, 1.0, 1.0, 1.0, 1.0);
@@ -496,7 +498,7 @@ STypeInState seduce_widget_slider_radial(BInputState *input, void *id, float *va
 		r_matrix_rotate(matrix, -45.0, 0, 0, 1);
 
 		if(*value < 0.999)
-			seduce_object_3d_draw(input, 0, 0, 0, size, SUI_3D_OBJECT_RADIAL_SHARD, timer, color);
+			seduce_object_3d_draw(input, 0, 0, 0, size, SEDUCE_OBJECT_RADIAL_SHARD, timer, color);
 		r_matrix_pop(matrix);*/
 
 	}
@@ -511,7 +513,10 @@ STypeInState seduce_widget_slider_radial(BInputState *input, void *id, float *va
 			}
 			if(grab[i].id == id && grab[i].active && input->pointers[i].button[0])
 			{
-				*value = seduce_widget_slider_radial_value(input, input->pointers[i].pointer_x - grab[i].pos[0], input->pointers[i].pointer_y - grab[i].pos[1], scale, NULL, NULL, *value, grab[i].init_value);
+				normalized_value = seduce_widget_slider_radial_value(input, input->pointers[i].pointer_x - grab[i].pos[0], input->pointers[i].pointer_y - grab[i].pos[1], scale, NULL, NULL, normalized_value, grab[i].init_value);
+				
+				*value = min + (normalized_value * (max - min));
+
 				if((input->pointers[i].click_pointer_x[0] - input->pointers[i].pointer_x) *
 					(input->pointers[i].click_pointer_x[0] - input->pointers[i].pointer_x) +
 					(input->pointers[i].click_pointer_y[0] - input->pointers[i].pointer_y) *
@@ -550,7 +555,10 @@ STypeInState seduce_widget_slider_radial(BInputState *input, void *id, float *va
 					if(axis == -1)
 						*value = grab[i].init_value;
 					else
-						*value = seduce_widget_slider_radial_value(input, input->axis[axis].axis[0] * scale, input->axis[axis].axis[1] * scale, scale, NULL, NULL, *value, grab[i + pointer_count].init_value);
+					{
+						normalized_value = seduce_widget_slider_radial_value(input, input->axis[axis].axis[0] * scale, input->axis[axis].axis[1] * scale, scale, NULL, NULL, normalized_value, grab[i + pointer_count].init_value);
+						*value = min + (normalized_value * (max - min));
+					}
 				}else if(!grab[i + pointer_count].active)
 				{
 					if(a_button[i] && !a_button_last[i])
@@ -594,15 +602,9 @@ STypeInState seduce_widget_slider_radial(BInputState *input, void *id, float *va
 		if(input->mode == BAM_DRAW)
 		{
 			r_matrix_push(matrix);
-			r_matrix_translate(matrix, 0, 0, grab[i].timer * size * 0.35);
-
-			/*		r_matrix_translate(matrix, pos_x, pos_y, grab[i].timer * size * 0.35);
-					r_matrix_scale(matrix, grab[i].timer, grab[i].timer, grab[i].timer);
-					sprintf(text_buf, "%.03f", *value);
-					f = seduce_text_line_length(NULL, SEDUCE_T_SIZE * scale * 8.0 * -0.5, SEDUCE_T_SPACE, text_buf, -1);
-					seduce_text_line_draw(NULL, f, 0, SEDUCE_T_SIZE * scale * 8.0, SEDUCE_T_SPACE, text_buf, 1, 1, 1, 1, -1);*/
+		//	r_matrix_translate(matrix, 0, 0, grab[i].timer * size * 0.35);
 		}
-		if(!seduce_text_edit_float(input, id, NULL, value, pos_x, pos_y, 2, SEDUCE_T_SIZE * scale * 8.0, TRUE, NULL, NULL, 0, 0, 0, grab[i].timer, 0, 0, 0, grab[i].timer) && grab[i].text_active)
+		if(!seduce_text_edit_float(input, id, NULL, value, pos_x, pos_y, SEDUCE_T_SIZE * 64, SEDUCE_T_SIZE * scale * 8.0, TRUE, NULL, NULL, color[0], color[1], color[2], grab[i].timer, color[0], color[1], color[2], grab[i].timer) && grab[i].text_active)
 		{
 			grab[i].active = FALSE;
 			return S_TIS_DONE;
@@ -730,7 +732,7 @@ STypeInState seduce_widget_slider_radius(BInputState *input, void *id, float *va
 					}
 				}
 			}
-			if(!input->pointers[i].button[0] && !grab[i].text_active)
+			if(grab[i].active && !input->pointers[i].button[0] && !grab[i].text_active)
 			{
 				grab[i].active = FALSE;
 				return S_TIS_DONE;
@@ -793,7 +795,7 @@ STypeInState seduce_widget_slider_radius(BInputState *input, void *id, float *va
 		if(input->mode == BAM_DRAW)
 		{
 			r_matrix_push(matrix);
-			r_matrix_translate(matrix, 0, 0, grab[i].timer * size * 0.35);
+		//	r_matrix_translate(matrix, 0, 0, grab[i].timer * size * 0.35);
 
 			/*		r_matrix_translate(matrix, pos_x, pos_y, grab[i].timer * size * 0.35);
 					r_matrix_scale(matrix, grab[i].timer, grab[i].timer, grab[i].timer);
@@ -801,7 +803,7 @@ STypeInState seduce_widget_slider_radius(BInputState *input, void *id, float *va
 					f = seduce_text_line_length(NULL, SEDUCE_T_SIZE * scale * 8.0 * -0.5, SEDUCE_T_SPACE, text_buf, -1);
 					seduce_text_line_draw(NULL, f, 0, SEDUCE_T_SIZE * scale * 8.0, SEDUCE_T_SPACE, text_buf, 1, 1, 1, 1, -1);*/
 		}
-		if(!seduce_text_edit_float(input, id, NULL, value, pos_x, pos_y, 2, SEDUCE_T_SIZE, TRUE, NULL, NULL, 0, 0, 0, grab[i].timer, 0, 0, 0, grab[i].timer) && grab[i].text_active)
+		if(!seduce_text_edit_float(input, id, NULL, value, pos_x - SEDUCE_T_SIZE, pos_y - SEDUCE_T_SIZE * 0.5, 2, SEDUCE_T_SIZE, TRUE, NULL, NULL, color[0], color[1], color[2], grab[i].timer, color[0], color[1], color[2], grab[i].timer) && grab[i].text_active)
 		{
 			grab[i].active = FALSE;
 			return S_TIS_DONE;
@@ -914,24 +916,24 @@ STypeInState seduce_widget_slider_line(BInputState *input, void *id, float *valu
 					seduce_widget_overlay_matrix(&overlay);
 					f_matrixxzf(m, grab[i].pos, &grab[i].pos[3], up);
 					lenght = sqrt((grab[i].pos[0] - grab[i].pos[3]) * (grab[i].pos[0] - grab[i].pos[3]) + (grab[i].pos[1] - grab[i].pos[4]) * (grab[i].pos[1] - grab[i].pos[4]));
-					seduce_object_3d_draw(input, m[12], m[13], m[14], scale * 0.1, SUI_3D_OBJECT_SNAP_LARGE, timer, color);
+					seduce_object_3d_draw(input, m[12], m[13], m[14], scale * 0.1, SEDUCE_OBJECT_SNAP_LARGE, timer, color);
 					r_matrix_matrix_mult(&overlay, m);
 					j = 0;
 					for(f = 0; f < lenght + 0.01; f += lenght / 10.0)
 					{
 						if(j % 5 == 0)
-							seduce_object_3d_draw(input, f, scale * 0.1, 0, scale * 0.1, SUI_3D_OBJECT_SNAP_LARGE, timer, color);
+							seduce_object_3d_draw(input, f, scale * 0.1, 0, scale * 0.1, SEDUCE_OBJECT_SNAP_LARGE, timer, color);
 						else
-							seduce_object_3d_draw(input, f, scale * 0.1, 0, scale * 0.1, SUI_3D_OBJECT_SNAP_SMALL, timer, color);
+							seduce_object_3d_draw(input, f, scale * 0.1, 0, scale * 0.1, SEDUCE_OBJECT_SNAP_SMALL, timer, color);
 						j++;
 					}
 					j = 0;
 					for(f = 0; f < lenght + 0.01; f += lenght / 16.0)
 					{
 						if(j % 4 == 0)
-							seduce_object_3d_draw(input, f, scale * -0.1, 0, scale * 0.1, SUI_3D_OBJECT_SNAP_LARGE, timer, color);
+							seduce_object_3d_draw(input, f, scale * -0.1, 0, scale * 0.1, SEDUCE_OBJECT_SNAP_LARGE, timer, color);
 						else
-							seduce_object_3d_draw(input, f, scale * -0.1, 0, scale * 0.1, SUI_3D_OBJECT_SNAP_SMALL, timer, color);
+							seduce_object_3d_draw(input, f, scale * -0.1, 0, scale * 0.1, SEDUCE_OBJECT_SNAP_SMALL, timer, color);
 						j++;
 					}
 					r_matrix_set(matrix);	*/			
@@ -1317,8 +1319,12 @@ STypeInState seduce_widget_slider_square(BInputState *input, void *id, float *va
 			}
 			if(grab[i].id == id && grab[i].active)
 			{
-				values[0] = (input->pointers[i].pointer_x - pos_x - size * 1.5) / (size_x - size * 3.0);
-				values[1] = (input->pointers[i].pointer_y - pos_y - size * 1.5) / (size_y - size * 3.0);
+			/*	values[0] = (input->pointers[i].pointer_x - pos_x - size * 1.5) / (size_x - size * 3.0);
+				values[1] = (input->pointers[i].pointer_y - pos_y - size * 1.5) / (size_y - size * 3.0);*/
+
+				values[0] += input->pointers[i].delta_pointer_x / (size_x - size * 3.0);
+				values[1] += input->pointers[i].delta_pointer_y / (size_y - size * 3.0);
+
 				if(values[0] > 1.0)
 					values[0] = 1.0;
 				if(values[0] < 0.0)
@@ -2200,7 +2206,7 @@ boolean seduce_widget_select_radial_old(BInputState *input, void *id, uint *sele
 		r_matrix_translate(matrix, pos_x, pos_y, 0);
 		r_matrix_rotate(matrix, 360.0 - time * 360.0, 0, 0, 1);
 		r_matrix_scale(matrix, time, time, time);
-		seduce_object_3d_draw(input, 0, 0, 0, size, SUI_3D_OBJECT_POPUPBUTTON, timer, NULL);
+		seduce_object_3d_draw(input, 0, 0, 0, size, SEDUCE_OBJECT_MENU, timer, NULL);
 		r_matrix_pop(matrix);
 	}
 
@@ -2255,7 +2261,7 @@ void seduce_widget_select_radial_func(BInputState *input, float time, void *user
 {
 	SSelectParams *params;
 	params = user;
-	params->output = seduce_popup(input, params->id, params->elements, params->element_count, time);
+	params->output = seduce_popup(input, params->id, params->elements, params->element_count, time, FALSE);
 }
 
 STypeInState seduce_widget_select_radial(BInputState *input, void *id, uint *selected, char **lables, uint element_count, SPopUpType type, float pos_x, float pos_y, float size, float scale, float time, boolean release_only)
@@ -2278,7 +2284,7 @@ STypeInState seduce_widget_select_radial(BInputState *input, void *id, uint *sel
 	params.id = id;
 	params.output = *selected;
 	params.element_count = element_count;
-	output = seduce_popup_detect_icon(input, id, 22, pos_x, pos_y, size, time, seduce_widget_select_radial_func, &params, TRUE, NULL);
+	output = seduce_popup_detect_icon(input, id, SEDUCE_OBJECT_MENU, pos_x, pos_y, size, time, seduce_widget_select_radial_func, &params, TRUE, NULL);
 	if(output != S_TIS_IDLE && params.output < element_count && (!release_only || output == S_TIS_DONE))
 		*selected = params.output;
 	if(element_count > 16)

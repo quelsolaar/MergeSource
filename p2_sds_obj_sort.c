@@ -8,7 +8,7 @@ void p_lod_gap_count(PPolyStore *geometry, PMesh *mesh, void *material, uint bit
 {
 	PMeshMaterial *mat;
 	pgreal *v;
-	uint32 i, j, k, *ref, stage, ref_count, vertex_count, mat_count = 0, param_count = 0;
+	uint32 i, j, k, *ref, stage = 0, ref_count, vertex_count, mat_count = 0, param_count = 0;
 	uint32 *buf;
 	
 	if(material == NULL)

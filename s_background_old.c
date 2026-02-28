@@ -1163,28 +1163,28 @@ void seduce_background_init()
 	array[29] = 1;
 	r_array_load_vertex(s_background_image, NULL, array, 0, 6);
 	s_background_shader_surface = r_shader_create_simple(buffer, 2048, s_background_shader_surface_vertex, s_background_shader_surface_fragment, "background surface");
-	r_shader_state_set_blend_mode(s_background_shader_surface, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+	r_shader_state_set_blend_mode(s_background_shader_surface, R_BM_ONE, R_BM_ONE_MINUS_SRC_ALPHA);
 	if(s_background_shader_surface == NULL)
 		array[29] = 1;
-	r_shader_state_set_depth_test(s_background_shader_surface, GL_ALWAYS);
+	r_shader_state_set_depth_test(s_background_shader_surface, R_DT_ALWAYS);
 	
 	s_background_shader_transition = r_shader_create_simple(buffer, 2048, s_background_shader_transition_vertex, s_background_shader_transition_fragment, "background transition");
-	r_shader_state_set_blend_mode(s_background_shader_transition, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+	r_shader_state_set_blend_mode(s_background_shader_transition, R_BM_ONE, R_BM_ONE_MINUS_SRC_ALPHA);
 	if(s_background_shader_transition == NULL)
 		array[29] = 1;
-	r_shader_state_set_depth_test(s_background_shader_transition, GL_ALWAYS);
+	r_shader_state_set_depth_test(s_background_shader_transition, R_DT_ALWAYS);
 	s_background_shader_negative = r_shader_create_simple(buffer, 2048, s_background_shader_negative_vertex, s_background_shader_negative_fragment, "negative surface");
-	r_shader_state_set_depth_test(s_background_shader_negative, GL_ALWAYS);
-//	r_shader_state_set_blend_mode(s_background_shader_negative, GL_ONE_MINUS_DST_COLOR, GL_ZERO);
-	r_shader_state_set_blend_mode(s_background_shader_negative, GL_ONE_MINUS_DST_COLOR, GL_ONE_MINUS_SRC_COLOR);
-//	r_shader_state_set_blend_mode(s_background_shader_negative, GL_ONE, GL_ONE);
+	r_shader_state_set_depth_test(s_background_shader_negative, R_DT_ALWAYS);
+//	r_shader_state_set_blend_mode(s_background_shader_negative, R_BM_ONE_MINUS_DST_COLOR, R_BM_ZERO);
+	r_shader_state_set_blend_mode(s_background_shader_negative, R_BM_ONE_MINUS_DST_COLOR, R_BM_ONE_MINUS_SRC_COLOR);
+//	r_shader_state_set_blend_mode(s_background_shader_negative, R_BM_ONE, R_BM_ONE);
 	s_background_shader_mask = r_shader_create_simple(buffer, 2048, s_background_shader_mask_vertex, s_background_shader_mask_fragment , "background mask");
-	r_shader_state_set_blend_mode(s_background_shader_mask, GL_ONE_MINUS_DST_COLOR, GL_ONE_MINUS_SRC_COLOR);
+	r_shader_state_set_blend_mode(s_background_shader_mask, R_BM_ONE_MINUS_DST_COLOR, R_BM_ONE_MINUS_SRC_COLOR);
 	if(s_background_shader_mask == NULL)
 		array[29] = 1;
-	r_shader_state_set_depth_test(s_background_shader_mask, GL_ALWAYS);
+	r_shader_state_set_depth_test(s_background_shader_mask, R_DT_ALWAYS);
 	s_image_shader = r_shader_create_simple(buffer, 2048, s_image_shader_vertex, s_image_shader_fragment, "background image");
-	r_shader_state_set_depth_test(s_image_shader, GL_ALWAYS);
+	r_shader_state_set_depth_test(s_image_shader, R_DT_ALWAYS);
 	for(i = 0; i < S_BACKGROUND_SPLITS; i++)
 	{
 

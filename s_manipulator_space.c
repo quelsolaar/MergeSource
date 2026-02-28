@@ -1,7 +1,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include "seduce.h"
-#include "s_draw_3d.h"
+
 
 extern SViewData sui_default_view;
 
@@ -488,7 +488,7 @@ boolean	seduce_manipulator_square_centered(BInputState *input, RMatrix *m, float
 	matrix[1] = 1;
 	matrix[4] = -1;
 	matrix[5] = 0;
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 0, snap, snap_active, 0, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_2D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 0, snap, snap_active, 0, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_2D))
 	{
 		if(aspect_lock)
 		{
@@ -505,7 +505,7 @@ boolean	seduce_manipulator_square_centered(BInputState *input, RMatrix *m, float
 	matrix[1] = -1;
 	matrix[4] = 1;
 	matrix[5] = 0;
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 1, snap, snap_active, 0, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_2D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 1, snap, snap_active, 0, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_2D))
 	{
 		if(aspect_lock)
 		{
@@ -522,7 +522,7 @@ boolean	seduce_manipulator_square_centered(BInputState *input, RMatrix *m, float
 	matrix[1] = 0;
 	matrix[4] = 0;
 	matrix[5] = -1;
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 2, snap, snap_active, 1, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_2D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 2, snap, snap_active, 1, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_2D))
 	{
 		if(aspect_lock)
 		{
@@ -539,7 +539,7 @@ boolean	seduce_manipulator_square_centered(BInputState *input, RMatrix *m, float
 	matrix[1] = 0;
 	matrix[4] = 0;
 	matrix[5] = 1;
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 3, snap, snap_active, 1, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_2D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 3, snap, snap_active, 1, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_2D))
 	{
 		if(aspect_lock)
 		{
@@ -559,7 +559,7 @@ boolean	seduce_manipulator_square_centered(BInputState *input, RMatrix *m, float
 		matrix[1] = -1;
 		matrix[4] = -1;
 		matrix[5] = 0;
-		if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 4, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_CORNER_2D))
+		if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 4, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_CORNER_2D))
 		{
 			size[0] = tmp[0] - pos[0];
 			size[1] = tmp[1] - pos[1];
@@ -572,7 +572,7 @@ boolean	seduce_manipulator_square_centered(BInputState *input, RMatrix *m, float
 		matrix[1] = -1;
 		matrix[4] = 1;
 		matrix[5] = 0;
-		if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 5, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_CORNER_2D))
+		if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 5, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_CORNER_2D))
 		{
 			size[0] = pos[0] - tmp[0];
 			size[1] = tmp[1] - pos[1];
@@ -585,7 +585,7 @@ boolean	seduce_manipulator_square_centered(BInputState *input, RMatrix *m, float
 		matrix[1] = 0;
 		matrix[4] = 0;
 		matrix[5] = 1;
-		if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 6, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_CORNER_2D))
+		if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 6, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_CORNER_2D))
 		{
 			size[0] = pos[0] - tmp[0];
 			size[1] = pos[1] - tmp[1];
@@ -598,7 +598,7 @@ boolean	seduce_manipulator_square_centered(BInputState *input, RMatrix *m, float
 		matrix[1] = 0;
 		matrix[4] = 0;
 		matrix[5] = 1;
-		if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 7, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_CORNER_2D))
+		if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 7, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_CORNER_2D))
 		{
 			size[0] = tmp[0] - pos[0];
 			size[1] = pos[1] - tmp[1];
@@ -712,7 +712,7 @@ boolean	seduce_manipulator_square_cornered(BInputState *input, RMatrix *m, float
 	matrix[1] = 1;
 	matrix[4] = -1;
 	matrix[5] = 0;
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 0, snap, snap_active, 0, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_2D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 0, snap, snap_active, 0, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_2D))
 	{
 		if(aspect_lock)
 		{
@@ -734,7 +734,7 @@ boolean	seduce_manipulator_square_cornered(BInputState *input, RMatrix *m, float
 	matrix[1] = -1;
 	matrix[4] = 1;
 	matrix[5] = 0;
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 1, snap, snap_active, 0, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_2D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 1, snap, snap_active, 0, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_2D))
 	{
 		if(aspect_lock)
 		{
@@ -756,7 +756,7 @@ boolean	seduce_manipulator_square_cornered(BInputState *input, RMatrix *m, float
 	matrix[1] = 0;
 	matrix[4] = 0;
 	matrix[5] = -1;
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 2, snap, snap_active, 1, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_2D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 2, snap, snap_active, 1, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_2D))
 	{
 	/*	if(aspect_lock)
 		{
@@ -775,7 +775,7 @@ boolean	seduce_manipulator_square_cornered(BInputState *input, RMatrix *m, float
 	matrix[1] = 0;
 	matrix[4] = 0;
 	matrix[5] = 1;
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 3, snap, snap_active, 1, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_2D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 3, snap, snap_active, 1, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_2D))
 	{
 	/*	if(aspect_lock)
 		{
@@ -797,7 +797,7 @@ boolean	seduce_manipulator_square_cornered(BInputState *input, RMatrix *m, float
 		matrix[1] = -1;
 		matrix[4] = -1;
 		matrix[5] = 0;
-		if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 4, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_CORNER_2D))
+		if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 4, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_CORNER_2D))
 		{
 			up_right[0] = tmp[0];
 			up_right[1] = tmp[1];
@@ -810,7 +810,7 @@ boolean	seduce_manipulator_square_cornered(BInputState *input, RMatrix *m, float
 		matrix[1] = -1;
 		matrix[4] = 1;
 		matrix[5] = 0;
-		if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 5, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_CORNER_2D))
+		if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 5, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_CORNER_2D))
 		{
 			down_left[0] = tmp[0];
 			up_right[1] = tmp[1];
@@ -823,7 +823,7 @@ boolean	seduce_manipulator_square_cornered(BInputState *input, RMatrix *m, float
 		matrix[1] = 0;
 		matrix[4] = 0;
 		matrix[5] = 1;
-		if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 6, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_CORNER_2D))
+		if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 6, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_CORNER_2D))
 		{
 			down_left[0] = tmp[0];
 			down_left[1] = tmp[1];
@@ -836,7 +836,7 @@ boolean	seduce_manipulator_square_cornered(BInputState *input, RMatrix *m, float
 		matrix[1] = 0;
 		matrix[4] = 0;
 		matrix[5] = 1;
-		if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 7, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_CORNER_2D))
+		if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 7, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_CORNER_2D))
 		{
 			up_right[0] = tmp[0];
 			down_left[1] = tmp[1];
@@ -958,7 +958,7 @@ boolean	seduce_manipulator_cube_centered(BInputState *input, RMatrix *m, float *
 	tmp[0] = pos[0] + size[0] + time;
 	tmp[1] = pos[1];
 	tmp[2] = pos[2];
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 0, snap, snap_active, 0, scale, matrix, SUI_3D_OBJECT_HANDLE_SURF_3D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 0, snap, snap_active, 0, scale, matrix, SEDUCE_OBJECT_HANDLE_SURF_3D))
 	{
 		size[0] = tmp[0] - pos[0];
 		output = TRUE;
@@ -969,7 +969,7 @@ boolean	seduce_manipulator_cube_centered(BInputState *input, RMatrix *m, float *
 
 	matrix[0] = -1;
 	matrix[5] = -1;
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 1, snap, snap_active, 0, scale, matrix, SUI_3D_OBJECT_HANDLE_SURF_3D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 1, snap, snap_active, 0, scale, matrix, SEDUCE_OBJECT_HANDLE_SURF_3D))
 	{
 		size[0] = pos[0] - tmp[0];
 		output = TRUE;
@@ -982,7 +982,7 @@ boolean	seduce_manipulator_cube_centered(BInputState *input, RMatrix *m, float *
 	matrix[1] = 1;
 	matrix[4] = 1;
 	matrix[5] = 0;
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 2, snap, snap_active, 1, scale, matrix, SUI_3D_OBJECT_HANDLE_SURF_3D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 2, snap, snap_active, 1, scale, matrix, SEDUCE_OBJECT_HANDLE_SURF_3D))
 	{
 		size[1] = tmp[1] - pos[1];
 		output = TRUE;
@@ -992,7 +992,7 @@ boolean	seduce_manipulator_cube_centered(BInputState *input, RMatrix *m, float *
 	tmp[2] = pos[2];
 	matrix[1] = -1;
 	matrix[4] = -1;
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 3, snap, snap_active, 1, scale, matrix, SUI_3D_OBJECT_HANDLE_SURF_3D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 3, snap, snap_active, 1, scale, matrix, SEDUCE_OBJECT_HANDLE_SURF_3D))
 	{
 		size[1] = pos[1] - tmp[1];
 		output = TRUE;
@@ -1008,7 +1008,7 @@ boolean	seduce_manipulator_cube_centered(BInputState *input, RMatrix *m, float *
 	matrix[5] = 1;
 	matrix[8] = 1;
 	matrix[10] = 0;
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 4, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_SURF_3D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 4, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_SURF_3D))
 	{
 		size[2] = tmp[2] - pos[2];
 		output = TRUE;
@@ -1019,7 +1019,7 @@ boolean	seduce_manipulator_cube_centered(BInputState *input, RMatrix *m, float *
 	matrix[2] = -1;
 	matrix[5] = 1;
 	matrix[8] = -1;
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 5, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_SURF_3D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 5, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_SURF_3D))
 	{
 		size[2] = pos[2] - tmp[2];
 		output = TRUE;
@@ -1033,7 +1033,7 @@ boolean	seduce_manipulator_cube_centered(BInputState *input, RMatrix *m, float *
 	matrix[2] = 0;
 	matrix[8] = 0;
 	matrix[9] = 1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 6, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 6, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		size[0] = tmp[0] - pos[0];
 		size[1] = tmp[1] - pos[1];
@@ -1045,7 +1045,7 @@ boolean	seduce_manipulator_cube_centered(BInputState *input, RMatrix *m, float *
 	tmp[2] = pos[2];
 	matrix[0] = -1;
 	matrix[6] = 1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 7, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 7, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		size[0] = pos[0] - tmp[0];
 		size[1] = tmp[1] - pos[1];
@@ -1057,7 +1057,7 @@ boolean	seduce_manipulator_cube_centered(BInputState *input, RMatrix *m, float *
 	matrix[0] = -1;
 	matrix[6] = 1;
 	matrix[9] = -1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 8, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 8, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		size[0] = pos[0] - tmp[0];
 		size[1] = pos[1] - tmp[1];
@@ -1067,7 +1067,7 @@ boolean	seduce_manipulator_cube_centered(BInputState *input, RMatrix *m, float *
 	tmp[1] = pos[1] - size[1] - time;
 	tmp[2] = pos[2];
 	matrix[0] = 1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 9, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 9, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		size[0] = tmp[0] - pos[0];
 		size[1] = pos[1] - tmp[1];
@@ -1083,7 +1083,7 @@ boolean	seduce_manipulator_cube_centered(BInputState *input, RMatrix *m, float *
 	matrix[2] = 1;
 	matrix[8] = 1;
 	matrix[9] = 0;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 10, snap, snap_active, 1, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 10, snap, snap_active, 1, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		size[0] = tmp[0] - pos[0];
 		size[2] = tmp[2] - pos[2];
@@ -1096,7 +1096,7 @@ boolean	seduce_manipulator_cube_centered(BInputState *input, RMatrix *m, float *
 	matrix[5] = 1;
 	matrix[2] = 1;
 	matrix[8] = -1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 11, snap, snap_active, 1, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 11, snap, snap_active, 1, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		size[0] = pos[0] - tmp[0];
 		size[2] = tmp[2] - pos[2];
@@ -1110,7 +1110,7 @@ boolean	seduce_manipulator_cube_centered(BInputState *input, RMatrix *m, float *
 	matrix[5] = 1;
 	matrix[2] = -1;
 	matrix[8] = 1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 12, snap, snap_active, 1, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 12, snap, snap_active, 1, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		size[0] = tmp[0] - pos[0];
 		size[2] = pos[2] - tmp[2];
@@ -1123,7 +1123,7 @@ boolean	seduce_manipulator_cube_centered(BInputState *input, RMatrix *m, float *
 	matrix[5] = 1;
 	matrix[2] = -1;
 	matrix[8] = -1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 13, snap, snap_active, 1, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 13, snap, snap_active, 1, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		size[0] = pos[0] - tmp[0];
 		size[2] = pos[2] - tmp[2];
@@ -1141,7 +1141,7 @@ boolean	seduce_manipulator_cube_centered(BInputState *input, RMatrix *m, float *
 	matrix[5] = 0;
 	matrix[8] = 0;
 	matrix[10] = 1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 14, snap, snap_active, 0, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 14, snap, snap_active, 0, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		size[1] = tmp[1] - pos[1];
 		size[2] = tmp[2] - pos[2];
@@ -1154,7 +1154,7 @@ boolean	seduce_manipulator_cube_centered(BInputState *input, RMatrix *m, float *
 	matrix[1] = -1;
 	matrix[4] = 1;
 	matrix[10] = 1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 15, snap, snap_active, 0, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 15, snap, snap_active, 0, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		size[1] = pos[1] - tmp[1];
 		size[2] = tmp[2] - pos[2];
@@ -1166,7 +1166,7 @@ boolean	seduce_manipulator_cube_centered(BInputState *input, RMatrix *m, float *
 	matrix[1] = 1;
 	matrix[4] = 1;
 	matrix[10] = -1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 16, snap, snap_active, 0, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 16, snap, snap_active, 0, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		size[1] = tmp[1] - pos[1];
 		size[2] = pos[2] - tmp[2];
@@ -1178,7 +1178,7 @@ boolean	seduce_manipulator_cube_centered(BInputState *input, RMatrix *m, float *
 	matrix[1] = -1;
 	matrix[4] = 1;
 	matrix[10] = -1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 17, snap, snap_active, 0, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 17, snap, snap_active, 0, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		size[1] = pos[1] - tmp[1];
 		size[2] = pos[2] - tmp[2];
@@ -1195,7 +1195,7 @@ boolean	seduce_manipulator_cube_centered(BInputState *input, RMatrix *m, float *
 		tmp[0] = pos[0] + (size[0] + time) * tmp[0];
 		tmp[1] = pos[1] + (size[1] + time) * -tmp[1];
 		tmp[2] = pos[2] + (size[2] + time) * tmp[2];
-		if(seduce_manipulator_point_pos_internal(input, grab, m, tmp, id, 18 + i, snap, snap_active, scale, matrix, SUI_3D_OBJECT_HANDLE_CORNER_3D))
+		if(seduce_manipulator_point_pos_internal(input, grab, m, tmp, id, 18 + i, snap, snap_active, scale, matrix, SEDUCE_OBJECT_HANDLE_CORNER_3D))
 		{
 			size[0] = (tmp[0] - pos[0]) * matrix[0];
 			size[1] = (tmp[1] - pos[1]) * -matrix[5];
@@ -1413,7 +1413,7 @@ boolean	seduce_manipulator_cube_cornered(BInputState *input, RMatrix *m, float *
 	tmp[0] = max[0] + time;
 	tmp[1] = center[1];
 	tmp[2] = center[2];
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 0, snap, snap_active, 0, scale, matrix, SUI_3D_OBJECT_HANDLE_SURF_3D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 0, snap, snap_active, 0, scale, matrix, SEDUCE_OBJECT_HANDLE_SURF_3D))
 	{
 		max[0] = tmp[0];
 		output = TRUE;
@@ -1424,7 +1424,7 @@ boolean	seduce_manipulator_cube_cornered(BInputState *input, RMatrix *m, float *
 
 	matrix[0] = -1;
 	matrix[5] = -1;
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 1, snap, snap_active, 0, scale, matrix, SUI_3D_OBJECT_HANDLE_SURF_3D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 1, snap, snap_active, 0, scale, matrix, SEDUCE_OBJECT_HANDLE_SURF_3D))
 	{
 		min[0] = tmp[0];
 		output = TRUE;
@@ -1437,7 +1437,7 @@ boolean	seduce_manipulator_cube_cornered(BInputState *input, RMatrix *m, float *
 	matrix[1] = 1;
 	matrix[4] = 1;
 	matrix[5] = 0;
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 2, snap, snap_active, 1, scale, matrix, SUI_3D_OBJECT_HANDLE_SURF_3D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 2, snap, snap_active, 1, scale, matrix, SEDUCE_OBJECT_HANDLE_SURF_3D))
 	{
 		max[1] = tmp[1];
 		output = TRUE;
@@ -1447,7 +1447,7 @@ boolean	seduce_manipulator_cube_cornered(BInputState *input, RMatrix *m, float *
 	tmp[2] = center[2];
 	matrix[1] = -1;
 	matrix[4] = -1;
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 3, snap, snap_active, 1, scale, matrix, SUI_3D_OBJECT_HANDLE_SURF_3D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 3, snap, snap_active, 1, scale, matrix, SEDUCE_OBJECT_HANDLE_SURF_3D))
 	{
 		min[1] = tmp[1];
 		output = TRUE;
@@ -1463,7 +1463,7 @@ boolean	seduce_manipulator_cube_cornered(BInputState *input, RMatrix *m, float *
 	matrix[5] = 1;
 	matrix[8] = 1;
 	matrix[10] = 0;
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 4, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_SURF_3D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 4, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_SURF_3D))
 	{
 		max[2] = tmp[2];
 		output = TRUE;
@@ -1474,7 +1474,7 @@ boolean	seduce_manipulator_cube_cornered(BInputState *input, RMatrix *m, float *
 	matrix[2] = -1;
 	matrix[5] = 1;
 	matrix[8] = -1;
-	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 5, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_SURF_3D))
+	if(seduce_manipulator_point_axis_internal(input, grab, m, tmp, id, 5, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_SURF_3D))
 	{
 		min[2] = tmp[2];
 		output = TRUE;
@@ -1488,7 +1488,7 @@ boolean	seduce_manipulator_cube_cornered(BInputState *input, RMatrix *m, float *
 	matrix[2] = 0;
 	matrix[8] = 0;
 	matrix[9] = 1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 6, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 6, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		max[0] = tmp[0];
 		max[1] = tmp[1];
@@ -1500,7 +1500,7 @@ boolean	seduce_manipulator_cube_cornered(BInputState *input, RMatrix *m, float *
 	tmp[2] = center[2];
 	matrix[0] = -1;
 	matrix[6] = 1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 7, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 7, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		min[0] = tmp[0];
 		max[1] = tmp[1];
@@ -1512,7 +1512,7 @@ boolean	seduce_manipulator_cube_cornered(BInputState *input, RMatrix *m, float *
 	matrix[0] = -1;
 	matrix[6] = 1;
 	matrix[9] = -1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 8, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 8, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		min[0] = tmp[0];
 		min[1] = tmp[1];
@@ -1522,7 +1522,7 @@ boolean	seduce_manipulator_cube_cornered(BInputState *input, RMatrix *m, float *
 	tmp[1] = min[1] - time;
 	tmp[2] = center[2];
 	matrix[0] = 1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 9, snap, snap_active, 2, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 9, snap, snap_active, 2, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		max[0] = tmp[0];
 		min[1] = tmp[1];
@@ -1538,7 +1538,7 @@ boolean	seduce_manipulator_cube_cornered(BInputState *input, RMatrix *m, float *
 	matrix[2] = 1;
 	matrix[8] = 1;
 	matrix[9] = 0;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 10, snap, snap_active, 1, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 10, snap, snap_active, 1, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		max[0] = tmp[0];
 		max[2] = tmp[2];
@@ -1551,7 +1551,7 @@ boolean	seduce_manipulator_cube_cornered(BInputState *input, RMatrix *m, float *
 	matrix[5] = 1;
 	matrix[2] = 1;
 	matrix[8] = -1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 11, snap, snap_active, 1, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 11, snap, snap_active, 1, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		min[0] = tmp[0];
 		max[2] = tmp[2];
@@ -1565,7 +1565,7 @@ boolean	seduce_manipulator_cube_cornered(BInputState *input, RMatrix *m, float *
 	matrix[5] = 1;
 	matrix[2] = -1;
 	matrix[8] = 1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 12, snap, snap_active, 1, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 12, snap, snap_active, 1, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		max[0] = tmp[0];
 		min[2] = tmp[2];
@@ -1578,7 +1578,7 @@ boolean	seduce_manipulator_cube_cornered(BInputState *input, RMatrix *m, float *
 	matrix[5] = 1;
 	matrix[2] = -1;
 	matrix[8] = -1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 13, snap, snap_active, 1, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 13, snap, snap_active, 1, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		min[0] = tmp[0];
 		min[2] = tmp[2];
@@ -1596,7 +1596,7 @@ boolean	seduce_manipulator_cube_cornered(BInputState *input, RMatrix *m, float *
 	matrix[5] = 0;
 	matrix[8] = 0;
 	matrix[10] = 1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 14, snap, snap_active, 0, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 14, snap, snap_active, 0, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		max[1] = tmp[1];
 		max[2] = tmp[2];
@@ -1609,7 +1609,7 @@ boolean	seduce_manipulator_cube_cornered(BInputState *input, RMatrix *m, float *
 	matrix[1] = -1;
 	matrix[4] = 1;
 	matrix[10] = 1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 15, snap, snap_active, 0, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 15, snap, snap_active, 0, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		min[1] = tmp[1];
 		max[2] = tmp[2];
@@ -1621,7 +1621,7 @@ boolean	seduce_manipulator_cube_cornered(BInputState *input, RMatrix *m, float *
 	matrix[1] = 1;
 	matrix[4] = 1;
 	matrix[10] = -1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 16, snap, snap_active, 0, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 16, snap, snap_active, 0, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		max[1] = tmp[1];
 		min[2] = tmp[2];
@@ -1633,7 +1633,7 @@ boolean	seduce_manipulator_cube_cornered(BInputState *input, RMatrix *m, float *
 	matrix[1] = -1;
 	matrix[4] = 1;
 	matrix[10] = -1;
-	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 17, snap, snap_active, 0, scale, matrix, SUI_3D_OBJECT_HANDLE_SIDE_3D))
+	if(seduce_manipulator_point_plane_internal(input, grab, m, tmp, id, 17, snap, snap_active, 0, scale, matrix, SEDUCE_OBJECT_HANDLE_SIDE_3D))
 	{
 		min[1] = tmp[1];
 		min[2] = tmp[2];
@@ -1659,7 +1659,7 @@ boolean	seduce_manipulator_cube_cornered(BInputState *input, RMatrix *m, float *
 			tmp[2] = min[2] - time;
 		else
 			tmp[2] = max[2] + time;
-		if(seduce_manipulator_point_pos_internal(input, grab, m, tmp, id, 18 + i, snap, snap_active, scale, matrix, SUI_3D_OBJECT_HANDLE_CORNER_3D))
+		if(seduce_manipulator_point_pos_internal(input, grab, m, tmp, id, 18 + i, snap, snap_active, scale, matrix, SEDUCE_OBJECT_HANDLE_CORNER_3D))
 		{
 			if(matrix[0] < 0)
 				min[0] = tmp[0];

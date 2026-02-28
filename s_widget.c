@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "seduce.h"
-#include "s_draw_3d.h"
+
 
 void s_widget_draw_lines(float x, float y, float length, float height)
 {
@@ -607,44 +607,19 @@ boolean seduce_widget_button_icon(BInputState *input, void *id, uint icon, float
 	uint i;
 	if(input->mode == BAM_DRAW)
 	{
-		float on[3] = {0.2, 0.6, 1.0}, *p = NULL, pos[3];
-		for(i = 0; i < input->pointer_count; i++)
-			if(id == seduce_element_pointer_id(input, i, NULL))
-				break;
-		if(i < input->pointer_count)
-		{
-			p = on;
-			if(color != NULL)
-				p = color;
-		}
-		for(i = 0; i < input->user_count; i++)
-		{
-			if(id == seduce_element_selected_id(i, NULL, NULL))
-			{
-				if(betray_button_get(i, BETRAY_BUTTON_FACE_A))
-				{
-					p = on;
-					if(color != NULL)
-						p = color;
-				}
-			}
-		}
+		float on[4] = {1.0, 1.0, 1.0, 1.0}, off[4] = {0.6, 0.6, 0.6, 1.0}, *c = NULL, pos[3];
+		if(color != NULL)
+			c = color;
+		else if(seduce_element_active(input, id, NULL))
+			c = on;
+		else
+			c = off;
+		
 		pos[0] = pos_x;
 		pos[1] = pos_y;
 		pos[2] = 0;
 		seduce_element_add_point(input, id, 0, pos, scale);
-		if(time < 0.999)
-		{	
-			RMatrix *matrix;
-			matrix = r_matrix_get();
-			r_matrix_push(matrix);
-			r_matrix_translate(matrix, pos_x, pos_y, 0);
-			r_matrix_rotate(matrix, 360.0 - time * 360.0, 0, 1, 0);
-			r_matrix_scale(matrix, time, 2 - time, time);
-			seduce_object_3d_draw(input, 0, 0, 0, scale, icon, FALSE, p);
-			r_matrix_pop(matrix);
-		}else
-			seduce_object_3d_draw(input, pos_x, pos_y, 0, scale, icon, FALSE, p);
+		seduce_object_3d_draw(input, pos_x, pos_y, 0, scale, icon, time, c);
 
 	}
 	if(input->mode == BAM_EVENT)
@@ -683,19 +658,22 @@ boolean seduce_widget_toggle_icon(BInputState *input, void *id, boolean *value, 
 		pos[1] = pos_y;
 		pos[2] = 0;
 		seduce_element_add_point(input, id, 0, pos, scale);
+		if(icon == SEDUCE_OBJECT_STAR || icon == SEDUCE_OBJECT_STAR_OFF)
+		{
+			if(*value)
+				icon = SEDUCE_OBJECT_STAR;
+			else
+				icon = SEDUCE_OBJECT_STAR_OFF;
+		}
+		if(icon == SEDUCE_OBJECT_SELECTED || icon == SEDUCE_OBJECT_SELECT)
+		{
+			if(*value)
+				icon = SEDUCE_OBJECT_SELECTED;
+			else
+				icon = SEDUCE_OBJECT_SELECT;
+		}
 
-		if(time < 0.999)
-		{	
-			RMatrix *matrix;
-			matrix = r_matrix_get();
-			r_matrix_push(matrix);
-			r_matrix_translate(matrix, pos_x, pos_y, 0);
-			r_matrix_rotate(matrix, 360.0 - time * 360.0, 0, 1, 0);
-			r_matrix_scale(matrix, time, 2 - time, time);
-			seduce_object_3d_draw(input, 0, 0, 0, scale, icon, FALSE, p);
-			r_matrix_pop(matrix);
-		}else
-			seduce_object_3d_draw(input, pos_x, pos_y, 0, scale, icon, FALSE, p);
+		seduce_object_3d_draw(input, pos_x, pos_y, 0.0004, scale, icon, time, p);
 
 	}
 	if(input->mode == BAM_EVENT)

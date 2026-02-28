@@ -1,6 +1,6 @@
  #include <stdlib.h>
 #include "seduce.h"
-
+#ifdef DEPRICATED
 void sui_set_blend_gl(uint source, uint destination)
 {
 	return;
@@ -137,3 +137,4 @@ void sui_draw_set_ivec4(uint *array, uint pos, uint a, uint b, uint c, uint d)
 	*(array++) = c;
 	*(array) = d;
 }
+#endif

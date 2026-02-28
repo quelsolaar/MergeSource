@@ -99,6 +99,21 @@
 #define GL_DYNAMIC_DRAW_ARB					0x88E8
 
 
+/* debugging */
+
+typedef enum{
+	RELINQUISH_AT_SHADER,
+	RELINQUISH_AT_BUFFER,
+	RELINQUISH_AT_TEXTURE,
+	RELINQUISH_AT_FBO,
+	RELINQUISH_AT_COUNT
+}RelinquishAssetType;
+
+extern void r_draw_asset_track(RelinquishAssetType type, void *pointer, size_t size, char *file, uint line);
+extern void r_draw_asset_untrack(RelinquishAssetType type, void *pointer, size_t size);
+
+void r_extension_error(void);
+
 /* Defined in r_draw_uniform.c */
 
 extern uint64 (APIENTRY *r_glGetTextureHandleARB)(uint texture);
@@ -114,7 +129,7 @@ extern GLvoid (APIENTRY *r_glDeleteBuffersARB)(uint n, const uint *buffers);
 extern GLvoid (APIENTRY *r_glGenBuffersARB)(uint n, uint *buffers);
 extern GLvoid (APIENTRY *r_glBufferDataARB)(uint target, uint size, const void *data, uint usage);
 
-#if defined(__APPLE__) || defined(__ANDROID__) || defined(_WIN32)
+#if !defined(__APPLE__) && !defined(MACOSX)
 typedef unsigned int GLhandleARB;
 #endif
 
