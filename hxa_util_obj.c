@@ -385,7 +385,7 @@ HXAFile *hxa_util_obj_load(char *file_name)
 			i++;
 			if(buffer[i] == 'g' && buffer[i + 1] <= ' ')
 			{			
-				f_debug_memory();
+				f_debug_mem_check_bounds();
 				if(node->content.geometry.face_count != 0)
 				{
 					hxa_util_obj_build_vertex(node, vertex_count, used, vertex, vertex_used);
@@ -413,7 +413,7 @@ HXAFile *hxa_util_obj_load(char *file_name)
 					printf("-%s-\n", node->meta_data[0].value.text_value);
 					node->meta_data_count = 1;
 				}
-				f_debug_memory();
+				f_debug_mem_check_bounds();
 			}else if(buffer[i] == 'f')
 			{
 				i++;
@@ -451,11 +451,11 @@ HXAFile *hxa_util_obj_load(char *file_name)
 						}
 					}else
 						i++;
-					f_debug_memory();
+					f_debug_mem_check_bounds();
 				}
 				if(primitive > 2)
 				{
-					f_debug_memory();
+					f_debug_mem_check_bounds();
 					write_ref[primitive - 1] = -1 - write_ref[primitive - 1];
 					write_ref += primitive;
 					node->content.geometry.edge_corner_count += primitive;
@@ -463,14 +463,14 @@ HXAFile *hxa_util_obj_load(char *file_name)
 						write_uv += primitive * 2;
 					if(write_normals != NULL)
 						write_normals += primitive * 3;
-					f_debug_memory();
+					f_debug_mem_check_bounds();
 					if(write_mat != NULL)
 						write_mat[node->content.geometry.face_count] = current_mat;
-					f_debug_memory();
+					f_debug_mem_check_bounds();
 					if(write_group != NULL) 
 						write_group[node->content.geometry.face_count] = current_group;
 					node->content.geometry.face_count++;
-					f_debug_memory();
+					f_debug_mem_check_bounds();
 
 				}
 			}else if(buffer[i] == 's' && buffer[i + 1] <= ' ') /* we have groups */

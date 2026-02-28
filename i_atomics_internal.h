@@ -32,6 +32,23 @@
 #define	imagine_atomic_integer_read(a) InterlockedCompareExchange64(&a, 0, 0)
 #define	imagine_atomic_integer_write(a, b) InterlockedExchange(&a, b)
 #define	imagine_atomic_integer_compare_and_exchange(a, b, c) (b == InterlockedCompareExchange64(&a, b, c))
+#define	imagine_atomic_integer_increment(a) InterlockedIncrement64(&a)
+#define	imagine_atomic_integer_increment(a) InterlockedDecrement64(&a)
+/*
+#define InterlockedIncrementAcquire64 _InterlockedIncrement64_acq
+#define InterlockedIncrementRelease64 _InterlockedIncrement64_rel
+#define InterlockedIncrementNoFence64 _InterlockedIncrement64_nf
+#define InterlockedDecrementAcquire64 _InterlockedDecrement64_acq
+#define InterlockedDecrementRelease64 _InterlockedDecrement64_rel
+#define InterlockedDecrementNoFence64 _InterlockedDecrement64_nf
+
+	users = InterlockedCompareExchangeRelease64(&allocation->users, 0, 0x8000000000000000);
+	if(users == 0x8000000000000000)
+		return 0;
+	if(users < 0x8000000000000000)
+	{
+		InterlockedDecrementRelease64(&allocation->users);
+*/
 #define	imagine_atomic_integer_free(a)
 
 #define	imagine_atomic_pointer_init(a, b) a = (b)

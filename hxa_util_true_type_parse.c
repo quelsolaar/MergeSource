@@ -95,7 +95,7 @@ uint32 hxa_util_true_type_parse_read_uint32(uint8 *array, unsigned int *pos)
 	return out;
 }
 
-void f_intersect2f(float *output, float *line_a0, float *line_a1, float *line_b0, float *line_b1)
+void hxa_util_intersect2f(float *output, float *line_a0, float *line_a1, float *line_b0, float *line_b1)
 {
 	output[0] = (line_a0[0] * line_a1[1] - line_a0[1] * line_a1[0])	* (line_b0[0] - line_b1[0]) - 
 				(line_b0[0] * line_b1[1] - line_b0[1] * line_b1[0])	* (line_a0[0] - line_a1[0]);
@@ -864,7 +864,7 @@ void hxa_util_true_type_parse_kern(float *vertex_array, unsigned int *ref, unsig
 				if((vertex_array[ref[j + k] * 2 + 1] > array[1] && vertex_array[ref[j + (k + 1) % 3] * 2 + 1] < array[1]) ||
 					(vertex_array[ref[j + k] * 2 + 1] < array[1] && vertex_array[ref[j + (k + 1) % 3] * 2 + 1] > array[1]))
 				{
-					f_intersect2f(output, &vertex_array[ref[j + k] * 2], &vertex_array[ref[j + (k + 1) % 3] * 2], array, &array[2]);
+					hxa_util_intersect2f(output, &vertex_array[ref[j + k] * 2], &vertex_array[ref[j + (k + 1) % 3] * 2], array, &array[2]);
 
 					if(min_max[0] > output[0])
 						min_max[0] = output[0];

@@ -2,6 +2,7 @@
 #include "forge.h"
 //#include "imagine.h"
 
+
 #ifdef _WIN32
 #include <windows.h>
 #include <psapi.h>
@@ -11,7 +12,6 @@
 void *mmap(void *addr, size_t length, int prot, int flags, int fd, off_t offset);
 int munmap(void *addr, size_t length);
 */
-
 
 
 
@@ -57,7 +57,7 @@ typedef struct{
 	HANDLE data_buffer_handle;
 	volatile uint8 *data_mapping;
 	size_t size;
-	DWORD *process_id_array;
+	HANDLE *process_id_array;
 	uint process_id_array_size;
 	IMemShareState state;
 	uint8 local_sync_buffer[4096];
@@ -111,8 +111,9 @@ void imagine_memory_share_destroy(IMemShare *share)
 
 boolean imagine_memory_share_alive(IMemShare *share)
 {
-	DWORD used, *array;
-	uint i, count, process; 
+	DWORD used;
+	uint i, count;
+	HANDLE process, *array; 
 	array = share->process_id_array;
 	if(!EnumProcesses(share->process_id_array, (sizeof *share->process_id_array) * share->process_id_array_size, &used))
 		return FALSE;
@@ -318,11 +319,11 @@ boolean imagine_memory_share_client_command(IMemShare *share, uint command, void
 	if(return_size == 0)
 		return TRUE;
 	if(imagine_memory_share_sync(share, IMAGINE_MSCS_RETURNING))
-		return NULL;
+		return FALSE;
 	memcpy(return_buffer, &sync[1], return_size);
 	sync->command_state = IMAGINE_MSCS_IDLE;
 //	SetEvent(share->sync_event);
-	return;
+	return TRUE;
 }
 
 void *imagine_memory_share_buffer_get(IMemShare *share, size_t *size)
@@ -438,19 +439,24 @@ boolean imagine_file_mapping_set(ImagineFilemapping *file, ImagineFileMappingCre
 {
 	DWORD mapping_read_write;
 	DWORD view_read_write;
-	if(IMAGINE_FMCT_OPEN_READ)
+	size_t a, b;
+		DWORD error;
+		error = GetLastError();
+	if(mode == IMAGINE_FMCT_OPEN_READ)
 	{
 		mapping_read_write = PAGE_READONLY | SEC_COMMIT;
 		view_read_write = FILE_MAP_READ;
 	}else
 	{
-		mapping_read_write = PAGE_READONLY | SEC_COMMIT;
+		mapping_read_write = PAGE_READWRITE | SEC_COMMIT;
 		view_read_write = FILE_MAP_ALL_ACCESS;
 	}
-	file->mapping_handle = CreateFileMapping(file->file_handle,          // current file handle
+	a = file->size & 0xFFFFFFFF00000000;
+	b = file->size & 0x00000000FFFFFFFF;
+	file->mapping_handle = CreateFileMappingA(file->file_handle,          // current file handle
 											 NULL,           // default security
 											 mapping_read_write, // read/write permission
-											 file->size / 0x100000000,        // size of mapping object, high
+											 (file->size >> 32) & 0xFFFFFFFF,  // size of mapping object, high
 											 file->size & 0xFFFFFFFF,  // size of mapping object, low
 											 NULL);          // name of mapping object
 
@@ -473,7 +479,7 @@ boolean imagine_file_mapping_set(ImagineFilemapping *file, ImagineFileMappingCre
 
 boolean imagine_file_mapping_create(ImagineFilemapping *file, char *file_name, size_t size, ImagineFileMappingCreateMode mode)
 { 
-	uint64 win_size;
+	LARGE_INTEGER win_size;
 	switch(mode)
 	{
 		case IMAGINE_FMCT_OPEN_READ :
@@ -495,7 +501,8 @@ boolean imagine_file_mapping_create(ImagineFilemapping *file, char *file_name, s
 			CloseHandle(file->file_handle);
 			return FALSE;	
 		}
-		size = win_size;
+		if(win_size.QuadPart != 0)
+			size = win_size.QuadPart;
 	}
 	file->size = size;
 	return imagine_file_mapping_set(file, mode);
@@ -574,3 +581,4 @@ void imagine_memory_share_host_command(IMemShare *share, char *(*command_func)(I
 	UnCase
 		FIFO
 */
+

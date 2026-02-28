@@ -4,6 +4,7 @@
 #include <math.h>
 #include "hxa.h"
 #include "hxa_utils.h"
+#include "forge.h"
 
 #define FALSE 0
 #define TRUE !FALSE
@@ -347,10 +348,11 @@ void hxa_util_triangulate_re_ref_edge_layer(HXALayer *layers, unsigned int count
 void hxa_util_triangulate_node(HXANode *node, unsigned int max_sides)
 {
 	unsigned int i, j, k, poly_count, ref_count, sides, *corner_reference, *poly_reference, count;
+	char *neighbour_name = HXA_CONVENTION_HARD_EDGE_NEIGHBOUR_LAYER_NAME;
 	double *vertex;
 	float *vertex_f = NULL;
 	int *ref, *new_ref;
-	if(node->type != HXA_NT_GEOMETRY)
+	if(node->type != HXA_NT_GEOMETRY || node->content.geometry.vertex_count < 3 || node->content.geometry.edge_corner_count < 3)
 		return;
 	if(node->content.geometry.vertex_stack.layers[0].type == HXA_LDT_FLOAT)
 	{
@@ -406,7 +408,15 @@ void hxa_util_triangulate_node(HXANode *node, unsigned int max_sides)
 	}
 	node->content.geometry.corner_stack.layers[0].data.int32_data = new_ref;
 	for(i = 1; i < node->content.geometry.corner_stack.layer_count; i++)
-		hxa_util_triangulate_re_ref_layer(&node->content.geometry.corner_stack.layers[i], ref_count, corner_reference);
+	{
+		for(j = 0; neighbour_name[j] == '\0' && neighbour_name[j] == node->content.geometry.corner_stack.layers[i].name[j]; j++);
+		if(neighbour_name[j] == node->content.geometry.corner_stack.layers[i].name[j])
+		{
+			free(node->content.geometry.corner_stack.layers[i].data.uint8_data);
+			node->content.geometry.corner_stack.layers[i--] = node->content.geometry.corner_stack.layers[--node->content.geometry.corner_stack.layer_count];
+		}else
+			hxa_util_triangulate_re_ref_layer(&node->content.geometry.corner_stack.layers[i], ref_count, corner_reference);
+	}
 	for(i = 0; i < node->content.geometry.edge_stack.layer_count; i++)
 		hxa_util_triangulate_re_ref_edge_layer(&node->content.geometry.edge_stack.layers[i], ref_count, new_ref, ref, corner_reference);
 	for(i = 0; i < node->content.geometry.face_stack.layer_count; i++)

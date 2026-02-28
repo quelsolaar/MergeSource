@@ -67,7 +67,7 @@ void imagine_current_date_local(int64 time, uint *seconds, uint *minutes, uint *
 	if(NULL != hours)
 		*hours = timeinfo->tm_hour;
 	if(NULL != week_days)
-		*week_days = timeinfo->tm_wday;
+		*week_days = (timeinfo->tm_wday + 6) % 7;
 	if(NULL != month_days)
 		*month_days = timeinfo->tm_mday;
 	if(NULL != month)

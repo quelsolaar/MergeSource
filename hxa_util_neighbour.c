@@ -63,18 +63,14 @@ int hxa_edge_get_previous(int *ref, unsigned int *neighbour, unsigned int edge)
 }
 
 
-unsigned int *hxa_neighbour_node(HXANode *node)
+unsigned int *hxa_neighbour_node_repair(HXANode *node, unsigned int *n)
 {
-	char *name = HXA_CONVENTION_HARD_EDGE_NEIGHBOUR_LAYER_NAME;
-	unsigned int j, cor, clear = 0, *n, *v, r, a, b, vertex_count, edge_length;
+	unsigned int j, cor, clear = 0, *v, r, a, b, vertex_count, edge_length;
 	unsigned int counter = 0, laps = 0;
 	int i, *ref;
 	vertex_count = node->content.geometry.vertex_count;
 	edge_length = node->content.geometry.edge_corner_count;
 	ref = node->content.geometry.corner_stack.layers[0].data.int32_data;
-	n = malloc((sizeof *n) * edge_length);
-	for(i = 0; i < edge_length; i++)
-		n[i] = -1;
 	v = malloc((sizeof *v) * vertex_count);
 	for(i = 0; i < vertex_count; i++)
 		v[i] = -1;
@@ -129,6 +125,23 @@ unsigned int *hxa_neighbour_node(HXANode *node)
 		laps++;
 	}
 	free(v);
+	return n;
+}
+
+
+unsigned int *hxa_neighbour_node(HXANode *node)
+{
+	char *name = HXA_CONVENTION_HARD_EDGE_NEIGHBOUR_LAYER_NAME;
+	unsigned int j, cor, clear = 0, *n, *v, r, a, b, vertex_count, edge_length;
+	unsigned int counter = 0, laps = 0;
+	int i, *ref;
+	vertex_count = node->content.geometry.vertex_count;
+	edge_length = node->content.geometry.edge_corner_count;
+	ref = node->content.geometry.corner_stack.layers[0].data.int32_data;
+	n = malloc((sizeof *n) * edge_length);
+	for(i = 0; i < edge_length; i++)
+		n[i] = -1;
+	hxa_neighbour_node_repair(node, n);
 	for(i = 0; i < node->content.geometry.edge_stack.layer_count; i++)
 	{
 		for(j = 0; node->content.geometry.edge_stack.layers[i].name[j] == name[j] && name[j] != 0; j++);

@@ -8,7 +8,7 @@
 #define TRUE !FALSE
 
 
-void hxa_util_meta_add(HXAMeta **meta_data, hxa_uint32 *meta_data_count, char *name, HXAMetaDataType type, void *data, unsigned int length, int copy)
+HXAMeta *hxa_util_meta_add(HXAMeta **meta_data, hxa_uint32 *meta_data_count, char *name, HXAMetaDataType type, void *data, unsigned int length, int copy)
 {
 	HXAMeta *m;
 	unsigned int i;
@@ -73,7 +73,7 @@ void hxa_util_meta_add(HXAMeta **meta_data, hxa_uint32 *meta_data_count, char *n
 	m->array_length = length;
 }
 
-void *hxa_util_meta_get(HXAMeta *meta_data, hxa_uint32 meta_data_count, char *name, HXAMetaDataType type, unsigned int *length, int recursive)
+void *hxa_util_meta_data_get(HXAMeta *meta_data, hxa_uint32 meta_data_count, char *name, HXAMetaDataType type, unsigned int *length, int recursive)
 {
 	void *output;
 	unsigned int i, j;
@@ -91,7 +91,7 @@ void *hxa_util_meta_get(HXAMeta *meta_data, hxa_uint32 meta_data_count, char *na
 			
 		}
 		if(recursive && meta_data[i].type == HXA_MDT_META)
-			if((output = hxa_util_meta_get(meta_data[i].value.array_of_meta, meta_data[i].array_length, name, type, length, TRUE)) != NULL)
+			if((output = hxa_util_meta_data_get(meta_data[i].value.array_of_meta, meta_data[i].array_length, name, type, length, TRUE)) != NULL)
 				return output;
 	}
 	return NULL;

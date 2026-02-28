@@ -17,7 +17,7 @@ int hxa_save_targa(char *file_name, unsigned char *data, unsigned int x, unsigne
 	if((image = fopen(file_name, "wb")) == NULL)
 	{
 		printf("Could not create file: %s\n", file_name);
-		return;
+		return 0;
 	}
 	fputc(0, image);
 	fputc(0, image);
@@ -59,6 +59,7 @@ int hxa_save_targa(char *file_name, unsigned char *data, unsigned int x, unsigne
 		fputc(foot[i], image); 
 	fputc(0, image);
 	fclose(image);
+	return 1;
 }
 
 

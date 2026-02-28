@@ -152,7 +152,7 @@ void opa_input_handler(BInputState *input, void *user_pointer)
 			opa_save(&opa_connections[i].project, opa_connections[i].connection);
 		}
 	}
-	if(seduce_view_change_right_button(NULL, input) ||
+	if(seduce_view_change_right_button(NULL, input, TRUE, TRUE, TRUE) ||
 		seduce_view_change_multi_touch(NULL, input, NULL) ||
 		seduce_view_change_keys(NULL, input, NULL))
 		return;

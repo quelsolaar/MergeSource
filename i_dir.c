@@ -106,7 +106,7 @@ void *imagine_path_watch(char *path, boolean subfoleders)
 {
 
 //	return FindFirstChangeNotificationW(path, subfoleders, FILE_NOTIFY_CHANGE_FILE_NAME);
-
+	return NULL;
 }
 
 	#define DIR_ROOT_PATH "/"

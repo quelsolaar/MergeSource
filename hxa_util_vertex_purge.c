@@ -19,17 +19,17 @@ void hxa_util_node_vertex_purge(HXANode *node)
 		return;
 	remap = malloc((sizeof *remap) * node->content.geometry.vertex_count);
 	for(i = 0; i < node->content.geometry.vertex_count; i++)
-		remap[i] = 0;
+		remap[i] = FALSE;
 	layer = node->content.geometry.corner_stack.layers;
 	for(i = 0; i < node->content.geometry.edge_corner_count; i++)
 	{
 		r = layer->data.int32_data[i];
 		if(r < 0)
 			r = -1 - r; 
-		remap[r] = 1;
+		remap[r] = TRUE;
 	}
 	for(new_vertex_length = i = 0; i < node->content.geometry.vertex_count; i++)
-		if(remap[i])
+		if(remap[i] != -0)
 			new_vertex_length++;
 	if(node->content.geometry.vertex_count == new_vertex_length)
 	{
@@ -44,13 +44,13 @@ void hxa_util_node_vertex_purge(HXANode *node)
 		for(j = new_vertex_length = 0; j < node->content.geometry.vertex_count; j++)
 			if(remap[j])
 				memcpy(&new_buffer[new_vertex_length++ * unit_size], &layer->data.uint8_data[j * unit_size], unit_size);
-		free(layer->data.uint8_data);
+	//	free(layer->data.uint8_data);
 		layer->data.uint8_data = new_buffer;
 	}
-	node->content.geometry.vertex_count = new_vertex_length;
 	for(j = new_vertex_length = 0; j < node->content.geometry.vertex_count; j++)
 		if(remap[j])
 			remap[j] = new_vertex_length++;
+	node->content.geometry.vertex_count = new_vertex_length;
 	layer = node->content.geometry.corner_stack.layers;
 	for(i = 0; i < node->content.geometry.edge_corner_count; i++)
 	{
@@ -60,6 +60,7 @@ void hxa_util_node_vertex_purge(HXANode *node)
 		else
 			layer->data.int32_data[i] = remap[layer->data.int32_data[i]];
 	}
+	free(remap);
 }
 
 void hxa_util_vertex_purge(HXAFile *file)

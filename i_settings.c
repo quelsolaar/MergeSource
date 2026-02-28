@@ -13,8 +13,10 @@ typedef enum{
 	IMAGINE_ST_COUNT
 }ImagineSettingType;
 
+#define SETTINGS_NAME_LENGTH 64
+
 typedef struct{
-	char	name[32];
+	char	name[SETTINGS_NAME_LENGTH];
 	ImagineSettingType	type;
 	const char	*comment;
 	union{
@@ -99,7 +101,7 @@ static ImagineSetting * imagine_add_setting(const char *name, const char *commen
 		if(ImagineGlobalSettings.count % 64 == 0)
 			ImagineGlobalSettings.array = realloc(ImagineGlobalSettings.array, (sizeof *ImagineGlobalSettings.array) * (ImagineGlobalSettings.count + 64));
 		s = &ImagineGlobalSettings.array[ImagineGlobalSettings.count++];
-		for(i = 0; i < 31 && name[i] != 0; i++)
+		for(i = 0; i < SETTINGS_NAME_LENGTH - 1 && name[i] != 0; i++)
 			s->name[i] = name[i];
 		s->name[i] = 0;
 	}
@@ -136,7 +138,7 @@ boolean imagine_setting_boolean_get(const char *setting, boolean default_value, 
 	{
 		text = s->data.text;
 		s->data.toggle = default_value;
-		for(i = 0; text[i] != 0 && text[i] <= 32; i++);
+		for(i = 0; text[i] != 0 && text[i] <= SETTINGS_NAME_LENGTH; i++);
 		if(text[i] != 0)
 		{
 			if(text[i] == 'T' || text[i] == 't')

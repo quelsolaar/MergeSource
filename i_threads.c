@@ -1,3 +1,4 @@
+#pragma makemake lib pthread posix
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -152,6 +153,9 @@ typedef struct{
 	uint line;
 	boolean locked;
 	boolean deleted;
+#ifdef _WIN32
+	WORD thread_id;
+#endif
 }IDebugLock;
 
 IDebugLock *i_debug_locks = NULL;
@@ -177,8 +181,6 @@ void *imagine_mutex_create_debug()
 	i_debug_locks[i_debug_lock_count].line = 0;
 	i_debug_locks[i_debug_lock_count].deleted = FALSE;
 	i_debug_locks[i_debug_lock_count++].locked = FALSE;
-	if(i_debug_lock_count == 4)
-		i_debug_lock_count += 0;
 	imagine_mutex_unlock(i_debug_lock_mutex);
 	return mutex;
 }
@@ -219,12 +221,15 @@ void imagine_mutex_lock_debug(void *mutex, char *file, uint line)
 		printf("Error: Imagine: trying to lock a lock that has been deleted: file %s line %u\n", file, line);	
 		exit(0);
 	}
-/*	if(i_debug_locks[i].locked)
+
+#ifdef _WIN32	
+	if(i_debug_locks[i].locked && i_debug_locks[i].thread_id == GetCurrentThreadId())
 	{
-		printf("Warning: Imagine: trying to lock already locked lock: file %s line %u\n", file, line);
+		printf("Error: Imagine: trying to lock already locked lock: file %s line %u\n", file, line);
 		if(i_debug_locks[i].file != file || i_debug_locks[i].line != line)
 			printf("Locked in: file %s line %u\n", i_debug_locks[i].file, i_debug_locks[i].line);
-	}*/
+	}
+#endif
 	imagine_mutex_unlock(i_debug_lock_mutex);
 
 	imagine_mutex_lock(mutex);
@@ -233,6 +238,9 @@ void imagine_mutex_lock_debug(void *mutex, char *file, uint line)
 	i_debug_locks[i].file = file;
 	i_debug_locks[i].line = line;
 	i_debug_locks[i].locked = TRUE;
+#ifdef _WIN32
+	i_debug_locks[i].thread_id = GetCurrentThreadId();
+#endif
 	imagine_mutex_unlock(i_debug_lock_mutex);
 }
 
@@ -252,12 +260,16 @@ boolean imagine_mutex_lock_try_debug(void *mutex, char *file, uint line)
 		printf("Error: Imagine: trying to lock a lock that has been deleted: file %s line %u\n", file, line);	
 		exit(0);
 	}
-/*	if(i_debug_locks[i].locked)
+
+
+#ifdef _WIN32	
+	if(i_debug_locks[i].locked && i_debug_locks[i].thread_id == GetCurrentThreadId())
 	{
-		printf("Warning: Imagine: trying to lock already locked lock: file %s line %u\n", file, line);
+		printf("Error: Imagine: trying to lock already locked lock: file %s line %u\n", file, line);
 		if(i_debug_locks[i].file != file || i_debug_locks[i].line != line)
 			printf("Locked in: file %s line %u\n", i_debug_locks[i].file, i_debug_locks[i].line);
-	}*/
+	}
+#endif
 	imagine_mutex_unlock(i_debug_lock_mutex);
 	output = imagine_mutex_lock_try(mutex);
 	if(output)
@@ -415,12 +427,15 @@ void imagine_thread(void (*func)(void *data), void *data, char *name)
 	thread_param->func = func;
 	thread_param->data = data;
 	CreateThread(NULL, 0,  i_win32_thread, thread_param, 0, &info.dwThreadID);
-#if defined(DEBUG) || defined(_DEBUG)
+/*#if defined(DEBUG) || defined(_DEBUG)
+	
 	info.dwType = 0x1000;
 	info.dwFlags = 0;
 	info.szName = name;
-	RaiseException(0x406D1388 /*MS_VC_EXCEPTION*/, 0, sizeof(info) / sizeof(ULONG_PTR), (ULONG_PTR*)&info);	
-#endif
+	RaiseException(0x406D1388, //	MS_VC_EXCEPTION 
+		0, sizeof(info) / sizeof(ULONG_PTR), (ULONG_PTR*)&info);	
+	
+#endif*/
 }
 
 #else
@@ -442,7 +457,9 @@ void imagine_thread(void (*func)(void *data), void *data, char *name)
     thread_param->func = func;
     thread_param->data = data;
     pthread_create(&thread_id, NULL, i_thread_thread, thread_param);
+#ifndef __APPLE__
 	pthread_setname_np(thread_id, name);
+#endif	
 }
 #endif
 
@@ -460,7 +477,7 @@ void imagine_sleepi(uint seconds, uint nano_seconds)
 void imagine_sleepi(uint seconds, uint nano_seconds)
 {
 	struct timespec times;
-	times.tv_sec = 0;        /* seconds */
+	times.tv_sec = seconds;        /* seconds */
 	times.tv_nsec = nano_seconds;
 	nanosleep(&times, NULL); 
 }

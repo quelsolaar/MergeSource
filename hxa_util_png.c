@@ -34,66 +34,70 @@ void hxa_load_unpack_uint8(unsigned char* input_buffer, unsigned char* output_bu
 		input_buffer[read] = 1; // Paeth @ 1st Row == Add
 	for (i = 0; i < y; i++)
 	{
-		switch (input_buffer[read++])
+		if(write != i * x * channels)
+			channels += 0;
+		if(read != i * ((x * channels) + 1))
+			channels += 0;
+		switch(input_buffer[read++])
 		{
-		case 0: // None
-			memcpy(&output_buffer[write], &input_buffer[read], x * channels);
-			write += channels * x;
-			read += channels * x;
+			case 0: // None
+				memcpy(&output_buffer[write], &input_buffer[read], x * channels);
+				write += channels * x;
+				read += channels * x;
 			break;
-		case 1: // Add
-			acces_a = write;
-			for (j = 0; j < channels; j++)
-				output_buffer[write++] = input_buffer[read++];
-			for (; j < x * channels; j++)
-				output_buffer[write++] = input_buffer[read++] + output_buffer[acces_a++];
+			case 1: // Add
+				acces_a = write;
+				for (j = 0; j < channels; j++)
+					output_buffer[write++] = input_buffer[read++];
+				for (; j < x * channels; j++)
+					output_buffer[write++] = input_buffer[read++] + output_buffer[acces_a++];
 			break;
-		case 2: // Up
-			acces_b = write - x * channels;
-			for (j = 0; j < x * channels; j++)
-				output_buffer[write++] = input_buffer[read++] + output_buffer[acces_b++];
+			case 2: // Up
+				acces_b = write - x * channels;
+				for (j = 0; j < x * channels; j++)
+					output_buffer[write++] = input_buffer[read++] + output_buffer[acces_b++];
 			break;
-		case 3: // Average
-			acces_a = write;
-			acces_b = write - x * channels;
-			for (j = 0; j < channels; j++)
-				output_buffer[write++] = input_buffer[read++] + output_buffer[acces_b++] / 2;
-			for (; j < x * channels; j++)
-				output_buffer[write++] = input_buffer[read++] + (output_buffer[acces_a++] + output_buffer[acces_b++]) / 2;
+			case 3: // Average
+				acces_a = write;
+				acces_b = write - x * channels;
+				for (j = 0; j < channels; j++)
+					output_buffer[write++] = input_buffer[read++] + output_buffer[acces_b++] / 2;
+				for (; j < x * channels; j++)
+					output_buffer[write++] = input_buffer[read++] + (output_buffer[acces_a++] + output_buffer[acces_b++]) / 2;
 			break;
-		case 5: // Average @ 1st Row
-			acces_a = write;
-			for (j = 0; j < channels; j++)
-				output_buffer[write++] = input_buffer[read++];
-			for (; j < x * channels; j++)
-				output_buffer[write++] = input_buffer[read++] + output_buffer[acces_a++] / 2;
+			case 5: // Average @ 1st Row
+				acces_a = write;
+				for (j = 0; j < channels; j++)
+					output_buffer[write++] = input_buffer[read++];
+				for (; j < x * channels; j++)
+					output_buffer[write++] = input_buffer[read++] + output_buffer[acces_a++] / 2;
 			break;
-		case 4: // Paeth
-			acces_b = write;
-			acces_a = write - x * channels;
-			acces_c = write - x * channels;
-			for (j = 0; j < channels; j++)
-				output_buffer[write++] = input_buffer[read++] + output_buffer[acces_a++];
-			for (; j < x * channels; j++)
-			{
-				int p, a, b, c, ap, bp, cp;
-				a = output_buffer[acces_a++];
-				b = output_buffer[acces_b++];
-				c = output_buffer[acces_c++];
-				p = a + b - c;
-				ap = abs(p - a);
-				bp = abs(p - b);
-				cp = abs(p - c);
-				if (ap <= bp && ap <= cp)
-					p = a;
-				else if (bp <= cp)
-					p = b;
-				else
-					p = c;
-				output_buffer[write++] = input_buffer[read++] + p;
-			}
+			case 4: // Paeth
+				acces_b = write;
+				acces_a = write - x * channels;
+				acces_c = write - x * channels;
+				for (j = 0; j < channels; j++)
+					output_buffer[write++] = input_buffer[read++] + output_buffer[acces_a++];
+				for (; j < x * channels; j++)
+				{
+					int p, a, b, c, ap, bp, cp;
+					a = output_buffer[acces_a++];
+					b = output_buffer[acces_b++];
+					c = output_buffer[acces_c++];
+					p = a + b - c;
+					ap = abs(p - a);
+					bp = abs(p - b);
+					cp = abs(p - c);
+					if (ap <= bp && ap <= cp)
+						p = a;
+					else if (bp <= cp)
+						p = b;
+					else
+						p = c;
+					output_buffer[write++] = input_buffer[read++] + p;
+				}
 			break;
-		default:
+			default:
 			printf("Error");
 			break;
 		}
@@ -108,7 +112,7 @@ unsigned int hxa_load_unpack_interlaced_uint8(unsigned char* input_buffer, unsig
 	if (input_buffer[read] >= 2)
 		input_buffer[read] = 0;
 	if (size_x <= offset_x || size_y <= offset_y)
-		return;
+		return 0;
 	for (i = offset_y; i < size_y; i += stride_y)
 	{
 		write = (i * size_x + offset_x) * channels;
@@ -246,7 +250,7 @@ char* hxa_load_png_file(char* file_name, size_t* size)
 }
 
 
-int hxa_load_png(HXAFile* file, char* file_name)
+int hxa_load_png_buffer(HXAFile* file, unsigned char *data, size_t size, char *file_name)
 {
 	char* name = HXA_CONVENTION_SOFT_LAYER_COLOR;
 	unsigned int channels[] = { 1, 0, 3, 3, 2, 0, 4 };
@@ -256,20 +260,16 @@ int hxa_load_png(HXAFile* file, char* file_name)
 	HxAPNGChannelTypes color;
 	HXANode* node;
 	union { char text[5]; unsigned int type; }type;
-	size_t size, pos, chunk_length, bitmap_size;
-	unsigned char* data, * unprocessed_data, * image_data;
-	data = hxa_load_png_file(file_name, &size);
-	if (data == NULL)
-	{
-		//	printf("HxA Error: Could not open file %s\n", file_name);
-		return FALSE;
-	}
+	size_t pos, chunk_length, bitmap_size;
+	unsigned char *unprocessed_data, *image_data;
 	//	printf("%s\n", file_name);
 	//	f_print_raw(data, 50);
 	type.text[4] = 0;
 	chunk_length = data[11] + data[10] * 256 + data[9] * 256 * 256 + data[8] * 256 * 256 * 256;
 	x = data[19] + data[18] * 256 + data[17] * 256 * 256 + data[16] * 256 * 256 * 256;
 	y = data[23] + data[22] * 256 + data[21] * 256 * 256 + data[20] * 256 * 256 * 256;
+	if(x != y)
+		x += 0;
 	bits = data[24];
 	color = data[25];
 	compression = data[26]; // Must be 0 Deflate
@@ -286,8 +286,8 @@ int hxa_load_png(HXAFile* file, char* file_name)
 
 	meta_data = malloc(size);
 	bitmap_size = x * y * channels[color] * bits / 8;
-	unprocessed_data = malloc(bitmap_size + y);
-	for (i = 0; i < bitmap_size + y; i++)
+	unprocessed_data = malloc(bitmap_size + y * channels[color]);
+	for (i = 0; i < bitmap_size + y * channels[color]; i++)
 		unprocessed_data[i] = 0;
 	for (pos = 8 + 8 + chunk_length + 4; pos + 8 < size; pos += chunk_length + 12)
 	{
@@ -339,7 +339,7 @@ int hxa_load_png(HXAFile* file, char* file_name)
 	}
 	meta_data = realloc(meta_data, meta_data_used);
 	//	f_print_raw(data, packed_size);
-	hxa_inflate(unprocessed_data, &bitmap_size, &data[2], packed_size - 6);
+ 	hxa_inflate(unprocessed_data, &bitmap_size, &data[2], packed_size - 6);
 	//	exit(0);
 	/*	{
 		//	unsigned char crc[4];
@@ -373,7 +373,6 @@ int hxa_load_png(HXAFile* file, char* file_name)
 	}
 	else
 		hxa_load_unpack_uint8(unprocessed_data, image_data, x, y, channels[color]);
-	free(data);
 	free(unprocessed_data);
 	file->node_count++;
 	file->node_array = realloc(file->node_array, (sizeof * file->node_array) * file->node_count);
@@ -418,6 +417,17 @@ int hxa_load_png(HXAFile* file, char* file_name)
 	return TRUE;
 }
 
+
+int hxa_load_png(HXAFile* file, char* file_name)
+{
+	size_t size;
+	unsigned char* data;
+	data = hxa_load_png_file(file_name, &size);
+	if(data == NULL)
+		return FALSE;
+	return hxa_load_png_buffer(file, data, size, file_name);
+}
+
 /* Table of CRCs of all 8-bit messages. */
 unsigned long crc_table[256];
 
@@ -458,7 +468,7 @@ void hxa_png_crc_compute(unsigned char* output, unsigned char* read_buffer, int 
 	output[3] = crc & 0xFF;
 }
 
-channels[] = { 1, 0, 3, 3, 2, 0, 4 };
+uint channels[] = { 1, 0, 3, 3, 2, 0, 4 };
 
 int hxa_debug_print_buffer(unsigned char* pixels, unsigned int size, char* name)
 {
@@ -504,6 +514,7 @@ int hxa_debug_print_buffer(unsigned char* pixels, unsigned int size, char* name)
 		}
 		i += j;
 	}
+	return 1;
 }
 
 int hxa_save_png(unsigned char* pixels, unsigned int channels, unsigned int x, unsigned int y, char* file_name)

@@ -2,10 +2,6 @@
 Imagine is a platform layer that wraps some basic operating system functionality. It is the smaller sibling of Betray the much larger platform layer. The difference is that Imagine doesnt require a display, drawing or any user input. It contains things like treading, file system traversal, plugin loading and settings management. */
 
 
-#if defined __cplusplus		/* Declare as C symbols for C++ users. */
-extern "C" {
-#endif
-
 #ifndef IMAGINE_H
 #define IMAGINE_H
 #include <stdlib.h>
@@ -30,6 +26,7 @@ typedef unsigned char uint8;
 #endif
 
 //#include "i_atomics_internal.h"
+#define IMAGINE_MUTEX_DEBUG_MODE
 
 #ifdef _WIN32
 #define ILibExport _declspec (dllexport)
@@ -42,7 +39,7 @@ Imagine allows the loading of dynamic libraries and the description of function 
 typedef void IInterface;
 typedef void ILib;
 
-extern IInterface 	*imagine_library_interface_create(); /* Create an interface. */
+extern IInterface 	*imagine_library_interface_create(void); /* Create an interface. */
 extern void		imagine_library_interface_destroy(IInterface *i);  /* Destroy an interface. */
 extern void		imagine_library_interface_register(IInterface *i, void *funtion_pointer, char *name); /* load a function pointer with a name in to identy fy it in to an interface*/
 extern int		imagine_library_interface_count(IInterface *i); /* Find ount hown many functions are available in the interface.*/
@@ -59,13 +56,13 @@ Imagine has full thread supprot that lets you create threads and thread safe Mut
 
 
 
-extern void		*imagine_mutex_create(); /* Creates a Mutex. Mutex locks are unlocked when created.*/
+extern void		*imagine_mutex_create(void); /* Creates a Mutex. Mutex locks are unlocked when created.*/
 extern void		imagine_mutex_lock(void *mutex); /* Lock a mutex. If the lock is already locked, the thread will wait on the lock until the lock is unlocked so that it can lock it */
 extern boolean	imagine_mutex_lock_try(void *mutex); /* The thread will atempt to lock the thread, if the lock is already locked if will returne FALSE and fail, If is is not locked, it will lock the mutex and return TRUE */
 extern void		imagine_mutex_unlock(void *mutex); /* Un locks the Mutex */
 extern void		imagine_mutex_destroy(void *mutex); /* Destroys the mutex */
 
-extern void		*imagine_signal_create(); /* Creates a signal bocker*/
+extern void		*imagine_signal_create(void); /* Creates a signal bocker*/
 extern void		imagine_signal_destroy(void *signal); /* Destroys a signal blocker */
 extern boolean	imagine_signal_wait(void *signal, void *mutex); /*Sets a thread to wait on the blocker for another thread to a activate it.*/
 extern boolean	imagine_signal_activate(void *signal); /*Activates the blocker so that one or more threads waiting on the signal will be released */
@@ -114,7 +111,7 @@ extern void		imagine_atomic_users_free(IAtomicUsers user);
 #define imagine_mutex_unlock(n) imagine_mutex_unlock_debug(n, __FILE__, __LINE__) /* Replaces imagine_mutex_unlock. */
 #define imagine_signal_wait(n, m) imagine_signal_wait_debug(n, m, __FILE__, __LINE__) /* Replaces imagine_mutex_unlock. */
 
-extern void		*imagine_mutex_create_debug(); /* debug version of magine_mutex_create */
+extern void		*imagine_mutex_create_debug(void); /* debug version of magine_mutex_create */
 extern void		imagine_signal_destroy_debug(void *mutex, char *file, uint line); /* debug version of magine_mutex_destroy */
 extern void		imagine_mutex_lock_debug(void *mutex, char *file, uint line); /* debug version of imagine_mutex_lock */
 extern boolean	imagine_mutex_lock_try_debug(void *mutex, char *file, uint line);/* debug version of imagine_mutex_lock_try */
@@ -122,7 +119,7 @@ extern void		imagine_mutex_unlock_debug(void *mutex, char *file, uint line);/* d
 extern void		imagine_signal_wait_debug(void *signal, void *mutex, char *file, uint line);/* debug version of imagine_mutex_unlock */
 extern boolean	imagine_mutex_is_locked_debug(void *mutex); /* check if a lock is locked */
 
-extern void		imagine_mutex_print_debug();/* prints out all currently locked mutexes and where they have been locked. */
+extern void		imagine_mutex_print_debug(void);/* prints out all currently locked mutexes and where they have been locked. */
 #else
 #define imagine_mutex_print_debug()
 #define imagine_mutex_is_locked_debug() TRUE
@@ -167,10 +164,14 @@ Under window this code will create a imaginary root directory containing all vol
 	#define IMAGINE_DIR_ROOT_PATH "/" /* Defines the root path on Windows. */
 	#define IMAGINE_LIBRARY_EXTENTION "dll" /* Defines the name of a library on Windows. */
 	#define IMAGINE_DIR_SLASH '\\' /* Defines the slash direction. */
+	#define IMAGINE_DIR_SLASH_STRING "\\" /* Defines the slash direction in string format. */
+	#define IMAGINE_PATH_LENGTH_MAX MAX_PATH
 #else
 	#define IMAGINE_DIR_ROOT_PATH "/" /* Defines the root path on Unix based platforms. */
-	#define IMAGINE_LIBRARY_EXTENTION "lib" /* Defines the name of a library on Windows. */
+	#define IMAGINE_LIBRARY_EXTENTION "so" /* Defines the name of a library on Unix. */
 	#define IMAGINE_DIR_SLASH '/' /* Defines the slash direction. */
+	#define IMAGINE_DIR_SLASH_STRING "/" /* Defines the slash direction in string format. */
+	#define IMAGINE_PATH_LENGTH_MAX 4096
 #endif
 #define IMAGINE_DIR_HOME_PATH "." /* Defines the path to the applications Home directory.*/
 
@@ -199,18 +200,18 @@ This code lets one application host a region of memory for another clinet applic
 
 typedef void IMemShare;
 
-extern IMemShare	*imagine_memory_share_host_create(size_t size, char *id); /* creates a host. id is tht test string id used to identify the memory. */
-extern boolean		imagine_memory_share_host_wait_for_connect(IMemShare *share); /* Once the host has been set up, this function can be called to check if the clint has connected.*/
-extern void			imagine_memory_share_host_command(IMemShare *share, char *(*command_func)(IMemShare *share, uint command, void *parameter_buffer, void *return_buffer, void *user), void *user); /* this function lets the host side wait for the client to call a command. The function will lock, and is best used form a thread dedicated to serving the client. */
+// extern IMemShare	*imagine_memory_share_host_create(size_t size, char *id); /* creates a host. id is tht test string id used to identify the memory. */
+// extern boolean		imagine_memory_share_host_wait_for_connect(IMemShare *share); /* Once the host has been set up, this function can be called to check if the clint has connected.*/
+// extern void			imagine_memory_share_host_command(IMemShare *share, char *(*command_func)(IMemShare *share, uint command, void *parameter_buffer, void *return_buffer, void *user), void *user); /* this function lets the host side wait for the client to call a command. The function will lock, and is best used form a thread dedicated to serving the client. */
 
-extern IMemShare	*imagine_memory_share_client_create(size_t *size, char *id); /* creats a client and connects to a host. Will return NULL if there is no hos or if the operation fails. */
-extern boolean		imagine_memory_share_client_command(IMemShare *share, uint command, void *parameters, size_t param_size, void *return_buffer, size_t return_size); /* sends a command to the host, copying param_size bytes from parameters, and writing back, return_size bytes to return_buffer. Returns TRUE if sucsesfull of FALSE if it fails. If it fails call imagine_memory_share_alive to see if host is alive*/
+// extern IMemShare	*imagine_memory_share_client_create(size_t *size, char *id); /* creats a client and connects to a host. Will return NULL if there is no hos or if the operation fails. */
+// extern boolean		imagine_memory_share_client_command(IMemShare *share, uint command, void *parameters, size_t param_size, void *return_buffer, size_t return_size); /* sends a command to the host, copying param_size bytes from parameters, and writing back, return_size bytes to return_buffer. Returns TRUE if sucsesfull of FALSE if it fails. If it fails call imagine_memory_share_alive to see if host is alive*/
 
 
-extern void			*imagine_memory_share_buffer_get(IMemShare *share, size_t *size); /* returns the shared memory buffer, and its size. */
+// extern void			*imagine_memory_share_buffer_get(IMemShare *share, size_t *size); /* returns the shared memory buffer, and its size. */
 
-extern boolean		imagine_memory_share_alive(IMemShare *share); /* returns true if the other side of the client/host connection is still active. */
-extern void			imagine_memory_share_destroy(IMemShare *share); /* destroys a shared memory region, and discconects */
+// extern boolean		imagine_memory_share_alive(IMemShare *share); /* returns true if the other side of the client/host connection is still active. */
+// extern void			imagine_memory_share_destroy(IMemShare *share); /* destroys a shared memory region, and discconects */
 
 /**/
 
@@ -226,16 +227,11 @@ typedef struct{
 typedef enum{
 	IMAGINE_FMCT_OPEN_READ, /* Open an existing file for reading. */
 	IMAGINE_FMCT_OPEN_READ_WRITE, /* Open an existing file for reading and writing. */
-	IMAGINE_FMCT_CREATE_READ_WRITE, /* Create anew file open for reading and writing. Will fail if the file already exists. */
+	IMAGINE_FMCT_CREATE_READ_WRITE, /* Create a new file open for reading and writing. Will fail if the file already exists. */
 	IMAGINE_FMCT_COUNT
 }ImagineFileMappingCreateMode; /* parameter for imagine_file_mapping_create */
 
 extern boolean imagine_file_mapping_create(ImagineFilemapping *file, char *file_name, size_t size, ImagineFileMappingCreateMode mode); /* Open/create a file */
 extern boolean imagine_file_mapping_resize(ImagineFilemapping *file, size_t size); /* Resize an exisitng handle. */
 extern void imagine_file_mapping_destroy(ImagineFilemapping *file); /* Close the file. */
-
-
-#endif
-#if defined __cplusplus
-}
 #endif

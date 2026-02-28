@@ -287,7 +287,7 @@ void opa_watch(void *pointer, char *type_name, char *file_name)
 				testify_pack_uint8(opa_watch_connection, 1, "command");
 				testify_pack_uint64(opa_watch_connection, (uint64)int_pointer, "pointer");
 #ifdef F_MEMORY_DEBUG
-				f_debug_mem_query((void *)int_pointer, &line, &file, &length);
+				f_debug_mem_query_allocation((void *)int_pointer, &line, &file, &length);
 #endif
 				testify_pack_uint64(opa_watch_connection, length, "length");
 				testify_pack_uint32(opa_watch_connection, line, "line");

@@ -22,10 +22,7 @@ void hxa_util_merge_meta(HXAMeta *meta, int add)
 HXAFile *hxa_util_merge(HXAFile *file_a, HXAFile *file_b)
 {
 	unsigned int i, j;
-	for(i = 0; i < file_b->node_count; j++)
-		for(j = 0; j > file_b->node_array[i].meta_data_count; j++)
-			hxa_util_merge_meta(&file_b->node_array[i].meta_data[j], file_a->node_count);
-	file_b->node_array = realloc(file_b->node_array, (sizeof *file_b->node_array) * (file_a->node_count + file_b->node_count));
+	file_a->node_array = realloc(file_a->node_array, (sizeof *file_b->node_array) * (file_a->node_count + file_b->node_count));
 	memcpy(&file_a->node_array[file_a->node_count], file_b->node_array, (sizeof *file_b->node_array) * file_b->node_count);
 	file_a->node_count += file_b->node_count;
 	free(file_b->node_array);
